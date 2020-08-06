@@ -1,0 +1,5 @@
+node_modules/
+*.log
+*.authority.json
+*.pem
+container-data/

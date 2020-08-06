@@ -1,0 +1,238 @@
+const fsPromises = require('fs').promises
+
+const express = require(`express`)
+const mongoose = require(`mongoose`)
+const jwt = require(`jsonwebtoken`)
+const bodyParser = require(`body-parser`)
+const keypairs = require(`keypairs`)
+
+function die(msg, code) {
+    console.error(msg)
+    process.exit(code || 1)
+}
+
+const config = {
+    port: process.env.APP_PORT || 8000,
+    dbURI: process.env.DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
+}
+
+// Models
+var authoritySchema = new mongoose.Schema({
+    name: String,
+    owner: {
+	   discord_id: String,
+	   nickname: String,
+    },
+    public_key: String,
+})
+var AuthorityModel = new mongoose.model(`Authority`, authoritySchema)
+
+var entrySchema = new mongoose.Schema({
+    authority_id: String,
+    user_id: String,
+    created_on: Date,
+    amount: Number,
+})
+var EntryModel = mongoose.model(`Entry`, entrySchema)
+
+
+// Express configuration
+const app = express()
+
+app.use(bodyParser.json())
+
+/**
+ * Does what __auth does, but ensures errors are never leaked to a caller.
+ * Use this, not __auth().
+ */
+async function auth(req, res, next) {
+    try {
+	   await __auth(req, res, next)
+    } catch (err) {
+	   console.trace(`warning: failed to authenticate: ${err}`)
+	   
+	   return res.status(403).json({
+		  error: `forbidden`,
+	   });
+    }
+}
+
+/**
+ * Authorization helper. Expects a JWT in the Authorization header. This should
+ * be signed by an authority's private key.
+ */
+async function __auth(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader) {
+        const tokenTxt = authHeader.split(` `)[1];
+
+	   // First get claimed authority id from the token
+	   // Here we are not verifying the token. We are simply seeing who it claims
+	   // to be, so we can check with our database and get the public key of who
+	   // they claim to be. After we get this the actual verified token is provided
+	   // to the request context and can be trusted.
+	   //
+	   // This variable should not be used as any proof of authorization
+	   const unverfiedTok = jwt.decode(tokenTxt)
+	   var authority = await AuthorityModel.findById(unverifiedTok.sub)
+	   
+	   if (!authority) {
+		  return res.status(403).json({
+			 error: `forbidden`,
+		  });
+	   }
+
+	   // Then verify JWT now that we have the actual claimed user's public key
+	   await new Promise((resolve, reject) => {
+		  jwt.verify(tokenTxt, authority.publicKey, (err, token) => {
+			 if (err) {
+				return reject(err)
+			 }
+
+			 req.authority = authority
+			 req.authToken = token
+			 
+			 return resolve()
+		  })
+	   })
+
+	   
+    } else {
+	   console.error(`warning: no authorization header`)
+	   
+        res.status(401).json({
+		  error: `authorization data required`,
+	   });
+    }
+};
+
+/**
+ * External indication that service is operating.
+ */
+app.get(`/health`, (req, res) => {
+    res.json({
+	   ok: true,
+    })
+})
+
+/**
+ * Get wallets, can be filtered.
+ */
+app.get(`/wallets`, auth, async (req, res) => {
+    let userIds = req.query.user_ids.split(`,`)
+
+    let match = {}
+    if (userIds.length > 0) {
+	   match = {
+		  user_id: userIds,
+	   }
+    }
+
+    let aggr = EntryModel.aggregate([
+	   { $match: match },
+	   { $group: { _id: `$user_id`, total: { $sum: "$amount" } } },
+    ])
+    res.json(aggr)
+})
+
+/**
+ * Main entrypoint. Runs commands.
+ */
+async function main() {
+    try{
+	   // Check command line options to determine what program should do
+	   var cmd = `api`
+	   if (process.argv.length >= 3) {
+		  cmd = process.argv[2]
+	   }
+
+	   // Connect to the database if needed
+	   if (cmd === `api` || cmd === `create-authority`) {
+		  await mongoose.connect(config.dbURI, {
+			 useNewUrlParser: true,
+			 useUnifiedTopology: true,
+		  })
+
+		  const db = mongoose.connection
+
+		  console.log(`connect to MongoDB`)
+	   }
+
+	   // Run command
+	   switch (cmd) {
+	   case `api`:
+		  app.listen(config.port, () => {
+			 console.log(`API server listening at :${config.port}`)
+		  })
+		  break
+	   case `create-authority`:
+		  // Read model data from JSON file
+		  if (process.argv.length < 4) {
+			 die(`usage: index.js create-authority <src file>
+error: <src file> argument required`)
+		  }
+		  src = process.argv[3]
+
+		  const data = await fsPromises.readFile(src)
+		  const parsedData = JSON.parse(data)
+		  console.log(`loaded data from ${src}
+${JSON.stringify(parsedData, null, 4)}`)
+
+		  // Save in db
+		  var authority = new AuthorityModel(parsedData)
+
+		  console.log(`saving new authority model
+${JSON.stringify(authority, null, 4)}`)
+		  await authority.save()
+		  break
+	   case `authority-keygen`:
+		  const pair = await keypairs.generate({ kty: `ECDSA`, namedCurve: `P-256` })
+		  
+		  const pubPEM = await keypairs.export({
+			 jwk: pair.public,
+			 encoding: `pem`
+		  })
+		  const privPEM = await keypairs.export({
+			 jwk: pair.private,
+			 encoding: `pem`
+		  })
+
+		  console.log(`public key (PEM)
+${pubPEM}
+
+private key (PEM)
+${privPEM}`)
+		  break
+	   case `help`:
+		  console.log(`index.js - wallet service main
+
+USAGE
+
+     api|create-authority|help [options...]
+
+COMMANDS
+
+    api                 Start HTTP API server
+
+    create-authority    Create a new authority model. Pass the name of a JSON file
+                        which contains the authority model data. See the 
+                        authoritySchema in the source code for the required format.
+
+    authority-keygen    Generate an ECDSA P-256 key pair. Use the resulting public
+                        key in an authority definition and the private key to sign
+                        JWT tokens in another service.
+
+    help                Show this help text.
+`)
+		  break
+	   }
+
+	   console.log(`done`)
+	   process.exit()
+    } catch (e) {
+	   console.trace(e)
+    }
+}
+
+main()
