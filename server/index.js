@@ -5,6 +5,7 @@ const mongoose = require(`mongoose`)
 const jwt = require(`jsonwebtoken`)
 const bodyParser = require(`body-parser`)
 const keypairs = require(`keypairs`)
+const joi = require(`@hapi/joi`)
 
 function die(msg, code) {
     console.error(msg)
@@ -18,23 +19,23 @@ const config = {
 
 // Models
 var authoritySchema = new mongoose.Schema({
-    name: String,
+    name: { type: String, required: true },
     owner: {
-	   discord_id: String,
-	   nickname: String,
+	   discord_id: { type: String, required: true },
+	   nickname: { type: String, required: true },
     },
-    public_key: String,
+    public_key: { type: String, required: true },
 })
 var AuthorityModel = new mongoose.model(`Authority`, authoritySchema)
 
 var entrySchema = new mongoose.Schema({
-    authority_id: String,
-    user_id: String,
-    created_on: Date,
-    amount: Number,
+    authority_id: { type: String, required: true },
+    user_id: { type: String, required: true },
+    created_on: { type: Date, required: true },
+    amount: { type: Number, required: true },
+    reason: { type: String, required: true },
 })
 var EntryModel = mongoose.model(`Entry`, entrySchema)
-
 
 // Express configuration
 const app = express()
@@ -65,8 +66,6 @@ async function __auth(req, res, next) {
     const authHeader = req.headers.authorization;
 
     if (authHeader) {
-        const tokenTxt = authHeader.split(` `)[1];
-
 	   // First get claimed authority id from the token
 	   // Here we are not verifying the token. We are simply seeing who it claims
 	   // to be, so we can check with our database and get the public key of who
@@ -74,7 +73,7 @@ async function __auth(req, res, next) {
 	   // to the request context and can be trusted.
 	   //
 	   // This variable should not be used as any proof of authorization
-	   const unverfiedTok = jwt.decode(tokenTxt)
+	   const unverifiedTok = jwt.decode(authHeader)
 	   var authority = await AuthorityModel.findById(unverifiedTok.sub)
 	   
 	   if (!authority) {
@@ -85,7 +84,7 @@ async function __auth(req, res, next) {
 
 	   // Then verify JWT now that we have the actual claimed user's public key
 	   await new Promise((resolve, reject) => {
-		  jwt.verify(tokenTxt, authority.publicKey, (err, token) => {
+		  jwt.verify(authHeader, authority.public_key, (err, token) => {
 			 if (err) {
 				return reject(err)
 			 }
@@ -97,7 +96,7 @@ async function __auth(req, res, next) {
 		  })
 	   })
 
-	   
+	   next()
     } else {
 	   console.error(`warning: no authorization header`)
 	   
@@ -106,6 +105,40 @@ async function __auth(req, res, next) {
 	   });
     }
 };
+
+/**
+ * Validates that a request's JSON body matches a schema.
+ * @param schema Definition of data requirements.
+ * @returns A middleware function which validates the request body.
+ */
+function validateBody(schema) {
+    return (req, res, next) => {
+	   let validateRes = schema.validate(req.body)
+
+	   if (validateRes.error) {
+		  res.status(400).json({
+			 error: validateRes.error
+		  })
+	   } else {
+		  next()
+	   }
+    }
+}
+
+/**
+ * Retrieves a comma seperated list from a URL query parameter.
+ * @param req Express request
+ * @param paramName Key of parameter in URL
+ * @returns Array of items
+ */
+function getParamList(req, paramName) {
+    const val = req.query[paramName]
+    if (val === undefined || val === null) {
+	   return []
+    } else {
+	   val.split(`,`)
+    }
+}
 
 /**
  * External indication that service is operating.
@@ -120,7 +153,8 @@ app.get(`/health`, (req, res) => {
  * Get wallets, can be filtered.
  */
 app.get(`/wallets`, auth, async (req, res) => {
-    let userIds = req.query.user_ids.split(`,`)
+    let userIds = getParamList(req, `user_ids`)
+    let authorityIds = getParamList(req, `authority_ids`)
 
     let match = {}
     if (userIds.length > 0) {
@@ -129,11 +163,51 @@ app.get(`/wallets`, auth, async (req, res) => {
 	   }
     }
 
-    let aggr = EntryModel.aggregate([
+    let wallets = await EntryModel.aggregate([
 	   { $match: match },
 	   { $group: { _id: `$user_id`, total: { $sum: "$amount" } } },
     ])
-    res.json(aggr)
+    let respWallets = wallets.map((item) => {
+	   return {
+		  id: item._id,
+		  total: item.total,
+	   }
+    })
+    
+    res.json({
+	   wallets: respWallets
+    })
+})
+
+const entryReqSchema = joi.object({
+    user_id: joi.string().required(),
+    amount: joi.number().integer().required(),
+    reason: joi.string().required(),
+})
+
+/**
+ * Create an entry.
+ */
+app.post(`/entry`, auth, validateBody(entryReqSchema), async (req, res) => {
+    let entry = new EntryModel({
+	   authority_id: req.authority.id,
+	   user_id: req.body.user_id,
+	   created_on: new Date(),
+	   amount: req.body.amount,
+	   reason: req.body.reason,
+    })
+
+    await entry.save()
+
+    res.json({
+	   entry: {
+		  authority_id: entry.authority_id,
+		  user_id: entry.user_id,
+		  created_on: entry.created_on.getTime() / 1000,
+		  amount: entry.amount,
+		  reason: entry.reason
+	   },
+    })
 })
 
 /**
@@ -229,7 +303,7 @@ COMMANDS
 	   }
 
 	   console.log(`done`)
-	   process.exit()
+	 //  process.exit()
     } catch (e) {
 	   console.trace(e)
     }
