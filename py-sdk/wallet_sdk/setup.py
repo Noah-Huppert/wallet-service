@@ -1,11 +1,18 @@
 import setuptools
+import os
 
-with open("../README.md", "r") as fh:
+DIR = os.path.dirname(os.path.realpath(__file__))
+
+VERSION = None
+with open(os.path.join(DIR, "VERSION"), 'r') as f:
+    VERSION = f.read()
+
+with open(os.path.join(DIR, "../README.md"), 'r') as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="wallet-sdk",
-    version="0.1.1",
+    version=VERSION,
     author="Noah Huppert",
     author_email="contact@noahh.io",
     description="Wallet service API SDK",

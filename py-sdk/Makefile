@@ -3,15 +3,15 @@
 PYTHON ?= python3
 PIP_REPO ?= testpypi
 
-PKG ?= wallet_sdk
-USERNAME ?= Noah_Huppert
-VERSION ?= 0.1.1
-
 DIST_DIR ?= dist
 SRC_DIR ?= wallet_sdk
 
 FILE_PREFIX ?= ${PKG}-${VERSION}
 DIST_FILES ?= ${DIST_DIR}/${FILE_PREFIX}.tar.gz ${DIST_DIR}/${FILE_PREFIX}-none-any.whl
+
+PKG ?= wallet_sdk
+USERNAME ?= Noah_Huppert
+VERSION ?= $(shell cat ${SRC_DIR}/VERSION)
 
 # Build distribution files
 ${DIST_FILES}: $(wildcard ${SRC_DIR}/*.py)
