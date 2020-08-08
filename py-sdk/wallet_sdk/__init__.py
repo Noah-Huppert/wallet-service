@@ -141,13 +141,12 @@ class WalletClient:
         Raises:
         - WalletAPIError
         """
-        uids = ",".join(user_ids)
-        aids = ",".join(authority_ids)
-        resp = requests.get(
-            self.api_url + f'/wallets?user_ids={uids}&authority_ids={aids}',
-            headers={
-                'Authorization': self.auth_token,
-            })
+        resp = requests.get(self.api_url + '/wallets', params={
+            'user_ids': ",".join(user_ids),
+            'authority_ids': ",".join(authority_ids),
+        }, headers={
+            'Authorization': self.auth_token,
+        })
         
         WalletAPIError.CheckResp(resp, WalletClient.GET_WALLETS_RESP_SCHEMA)
         

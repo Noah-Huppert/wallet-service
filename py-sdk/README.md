@@ -66,12 +66,6 @@ pipenv shell
 
 Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
 
-Build:
-
-```
-make build
-```
-
 Publish to pip:
 
 ```
