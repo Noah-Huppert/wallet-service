@@ -133,10 +133,10 @@ function validateBody(schema) {
  */
 function getParamList(req, paramName) {
     const val = req.query[paramName]
-    if (val === undefined || val === null) {
+    if (val === undefined || val === null || val.length === 0) {
 	   return []
     } else {
-	   val.split(`,`)
+	   return val.split(`,`)
     }
 }
 
@@ -158,9 +158,11 @@ app.get(`/wallets`, auth, async (req, res) => {
 
     let match = {}
     if (userIds.length > 0) {
-	   match = {
-		  user_id: userIds,
-	   }
+	   match.user_id = { $in: userIds }
+    }
+
+    if (authorityIds.length > 0) {
+	   match.authority_id = { $in: authorityIds }
     }
 
     let wallets = await EntryModel.aggregate([
