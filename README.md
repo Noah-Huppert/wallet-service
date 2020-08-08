@@ -14,4 +14,4 @@ calls from authorities.
 
 A Python 3 SDK (pip package `wallet-sdk`) is provided.
 
-See the [`server/`](./server) and [`py-sdk/`](./py-sdk).
+See the [`server/`](./server) and [`py-sdk/`](./py-sdk) directories.
