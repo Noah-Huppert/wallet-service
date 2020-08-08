@@ -21,12 +21,12 @@ c = wallet_sdk.WalletClient(api_url='http://127.0.0.1:8000',
                             authority_id='5f2cdb324d0e5d2eabeef432',
                             private_key=b'-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIfoKksdIYKZU0Np56zCDeH4jcDZOqmsgAu9cM/1RYTPoAoGCCqGSM49\nAwEHoUQDQgAEfpNaJROKO0436jAjBnXGi38/T/ZdYBcs7VL+oQ0sHwM/57bYbPej\nfDqda0rOufFi0ZiOK6vFNC9wSYoTJuckhg==\n-----END EC PRIVATE KEY-----')
 				 
-# Ensure wallet service is operation.
+# Ensure wallet service is operational
 try:
     c.check_service_health()
 except wallet_sdk.WalletAPIError as e:
-    print("Failed to ensure wallet service is running", e)
-	sys.exit(1)
+    print("Failed to ensure wallet service is running:", e)
+    sys.exit(1)
 			 
 # Add 10 to user 0's wallet
 entry = c.create_entry(user_id='0', amount=10, reason='testing')
