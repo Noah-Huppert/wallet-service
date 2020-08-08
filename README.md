@@ -12,5 +12,6 @@ Only trusted clients can add and remove value. These clients are
 named **authorities.** The service uses ECDSA key pairs to authenticate API
 calls from authorities.
 
-[`server/`](./server)  
-[`py-sdk/`](./py-sdk)
+A Python 3 SDK (pip package `wallet-sdk`) is provided.
+
+See the [`server/`](./server) and [`py-sdk/`](./py-sdk).
