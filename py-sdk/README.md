@@ -9,7 +9,22 @@ Python interface for a wallet service.
 # Overview
 Wallet service Python 3 SDK.
 
-Install the `wallet-sdk` pip package. 
+Install the `wallet-sdk` pip package. Then use the `WalletClient` class.
+
+```py
+# Initialize client with development credentials
+c = WalletClient(api_url='http://127.0.0.1:8000',
+                     authority_id='5f2cdb324d0e5d2eabeef432',
+                     private_key=b'-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIfoKksdIYKZU0Np56zCDeH4jcDZOqmsgAu9cM/1RYTPoAoGCCqGSM49\nAwEHoUQDQgAEfpNaJROKO0436jAjBnXGi38/T/ZdYBcs7VL+oQ0sHwM/57bYbPej\nfDqda0rOufFi0ZiOK6vFNC9wSYoTJuckhg==\n-----END EC PRIVATE KEY-----')
+					 
+# Add 10 to user 0's wallet
+entry = c.create_entry(user_id='0', amount=10, reason='testing')
+print("entry={}".format(entry))
+
+# Get the value of all wallets
+wallets = c.get_wallets()
+print("wallets={}".format(wallets))
+```
 
 # Development
 A virtual environment is provided for development purposes.
@@ -37,6 +52,8 @@ First activate the development python virtual environment:
 ```
 pipenv shell
 ```
+
+Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
 
 Build:
 
