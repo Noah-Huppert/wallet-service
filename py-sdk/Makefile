@@ -14,9 +14,9 @@ FILE_PREFIX ?= ${PKG}-${VERSION}
 DIST_FILES ?= ${DIST_DIR}/${FILE_PREFIX}.tar.gz ${DIST_DIR}/${FILE_PREFIX}-none-any.whl
 
 # Build distribution files
-${DIST_FILES}:
-	cd ${SRC_DIR} && ${PYTHON} setup.py sdist bdist_wheel
+${DIST_FILES}: $(wildcard ${SRC_DIR}/*.py)
+	${PYTHON} ${SRC_DIR}/setup.py sdist bdist_wheel
 
 # Publish distribution to pip
 publish: ${DIST_FILES}
-	cd ${SRC_DIR} && ${PYTHON} -m twine upload --repository ${PIP_REPO} ${DIST_DIR}/${FILE_PREFIX}*.whl
+	${PYTHON} -m twine upload --repository ${PIP_REPO} --skip-existing ${DIST_DIR}/*
