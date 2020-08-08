@@ -89,6 +89,10 @@ class WalletClient:
         v.Required('reason'): str,
     })
 
+    HEALTH_RESP_SCHEMA = v.Schema({
+        v.Required('ok'): True,
+    })
+
     GET_WALLETS_RESP_SCHEMA = v.Schema({
         v.Required('wallets'): [{
             v.Required('id'): str,
@@ -116,6 +120,14 @@ class WalletClient:
             'sub': authority_id,
         }, self.private_key, algorithm='ES256')
 
+    def check_service_health(self):
+        """ Ensures that the wallet service is operating.
+        Raises:
+        - WalletAPIError: If the service is not operating correctly.
+        """
+        resp = requests.get(self.api_url + '/health')
+        WalletAPIError.CheckResp(resp, WalletClient.HEALTH_RESP_SCHEMA)
+
     def get_wallets(self, user_ids: List[str]=[],
                     authority_ids: List[str]=[]) -> List[Dict[str, object]]:
         """ Get wallets. Filterable by user and authority.
@@ -129,9 +141,13 @@ class WalletClient:
         Raises:
         - WalletAPIError
         """
-        resp = requests.get(self.api_url + '/wallets', headers={
-            'Authorization': self.auth_token,
-        })
+        uids = ",".join(user_ids)
+        aids = ",".join(authority_ids)
+        resp = requests.get(
+            self.api_url + f'/wallets?user_ids={uids}&authority_ids={aids}',
+            headers={
+                'Authorization': self.auth_token,
+            })
         
         WalletAPIError.CheckResp(resp, WalletClient.GET_WALLETS_RESP_SCHEMA)
         
