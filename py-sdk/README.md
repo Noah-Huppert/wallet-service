@@ -1,3 +1,5 @@
+[**PyPi**](https://pypi.org/project/wallet-sdk-Noah-Huppert/0.1.0/)
+
 # Wallet Python SDK
 Python interface for a wallet service.
 
@@ -12,9 +14,9 @@ Wallet service Python 3 SDK.
 
 First [follow the instructions to request wallet service credentials](#request-credentials).
 
-Next install the `wallet-sdk-Noah-Huppert` pip package and import the 
-`wallet_sdk` module. Then use the `WalletClient` class to interact with the 
-wallet service API.
+Next install the [`wallet-sdk-Noah-Huppert`](https://pypi.org/project/wallet-sdk-Noah-Huppert/0.1.0/)
+pip package and import the `wallet_sdk` module. Then use the `WalletClient` 
+class to interact with the wallet service API.
 
 ```py
 # Import wallet service Python SDK
