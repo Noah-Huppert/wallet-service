@@ -31,7 +31,7 @@ const authorityRequestFileSchema = joi.object({
     server_host: joi.string().required(),
     name: joi.string().required(),
     owner: joi.object({
-	   discord_id: joi.string().required(),
+	   contact: joi.string().required(),
 	   nickname: joi.string().required(),
     })
 })
@@ -40,7 +40,7 @@ const authorityRequestFileSchema = joi.object({
 var authoritySchema = new mongoose.Schema({
     name: { type: String, required: true },
     owner: {
-	   discord_id: { type: String, required: true },
+	   contact: { type: String, required: true },
 	   nickname: { type: String, required: true },
     },
     public_key: { type: String, required: true },
