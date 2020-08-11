@@ -329,7 +329,7 @@ USAGE
 
 COMMANDS
 
-    api                 Start HTTP API server
+    api                 Start HTTP API server.
 
     create-authority    Create a new authority and save it in the database. A file
                         path to a JSON authority request file (containing fields
