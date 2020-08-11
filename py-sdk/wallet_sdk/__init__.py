@@ -5,10 +5,14 @@ Client SDK for the [Wallet Service project](https://github.com/Noah-Huppert/wall
 The WalletClient provides a programmatic interface to the wallet service HTTP API.
 """
 from typing import List, Dict, Optional
+import json
 
 import requests
 import voluptuous as v
 import jwt
+
+# Version of the API with which the client knows how to communicate.
+API_VERSION = '0'
 
 class WalletAPIError(Exception):
     """ Indicates an error occurred with a wallet service API call.
@@ -71,15 +75,35 @@ class WalletAPIError(Exception):
                 raise WalletAPIError(
                     url=resp.request.url, method=resp.request.method,
                     error="Response JSON not in the correct format: {}".format(e))
-                                     
+
+class WalletConfigError(Exception):
+    """ Indicates there was an error while fetching or parsing a wallet service 
+    configuration file.
+    """
+
+    def __init__(self, msg: str):
+        """ Initializes.
+        Arguments:
+        - msg: Description of issue.
+        """
+        super().__init__(msg)
         
 class WalletClient:
     """ Wallet service API client.
     Static fields:
+    - CONFIG_FILE_SCHEMA: Schema for wallet service config file.
     - ENTRY_SCHEMA: Schema for entry model.
     - GET_WALLETS_RESP_SCHEMA: Schema for a get wallets endpoint response.
     - CREATE_ENTRY_RESP_SCHEMA: Schema for a create entry endpoint response.
     """
+
+    CONFIG_FILE_SCHEMA = v.Schema({
+        # Seperate from server API or py sdk version
+        v.Required('config_schema_version'): '0.1.0',
+        v.Required('api_base_url'): str,
+        v.Required('authority_id'): str,
+        v.Required('private_key'): str,
+    })
 
     ENTRY_SCHEMA = v.Schema({
         v.Required('authority_id'): str,
@@ -119,6 +143,42 @@ class WalletClient:
         self.auth_token = jwt.encode({
             'sub': authority_id,
         }, self.private_key, algorithm='ES256')
+
+    def LoadFromConfig(config_file_path: str) -> 'WalletClient':
+        """ Loads Wallet API client configuration from a config file.
+        Arguments:
+        - config_file_path: Path to wallet service configuration file.
+        
+        Returns: WalletClient.
+
+        Raises:
+        - WalletConfigError: If an error occurrs loading the configuration file.
+        """
+        # Load
+        dat = None
+        try:
+            with open(config_file_path, "r") as f:
+                dat = json.load(f)
+        except IOError as e:
+            raise WalletConfigError(f"Error reading configuration file " +
+                                    f"\"{config_file_path}\": {e}")
+        except json.JSONDecodeError as e:
+            raise WalletConfigError(f"Error decoding configuration file as JSON " +
+                                    f"\"{config_file_path}\": {e}")
+
+        # Validate
+        config = None
+        try:
+            config = WalletClient.CONFIG_FILE_SCHEMA(dat)
+        except v.MultipleInvalid as e:
+            raise WalletConfigError(f"Error validating configuration file "+
+                                    f"\"{config_file_path}\": {e}")
+
+        # Initialize
+        return WalletClient(api_url="{}/api/v{}".format(config['api_base_url'],
+                                                        API_VERSION),
+                            authority_id=config['authority_id'],
+                            private_key=config['private_key'])
 
     def check_service_health(self):
         """ Ensures that the wallet service is operating.

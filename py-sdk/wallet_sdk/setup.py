@@ -10,6 +10,8 @@ with open(os.path.join(DIR, "VERSION"), 'r') as f:
 with open(os.path.join(DIR, "../README.md"), 'r') as fh:
     long_description = fh.read()
 
+print("find_packages=", setuptools.find_packages())
+
 setuptools.setup(
     name="wallet-sdk",
     version=VERSION,
@@ -20,6 +22,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Noah-Huppert/wallet-service/py-sdk",
     packages=setuptools.find_packages(),
+    install_requires=[ 'pyjwt', 'requests', 'voluptuous' ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

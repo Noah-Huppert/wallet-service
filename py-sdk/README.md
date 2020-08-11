@@ -1,5 +1,5 @@
 # Wallet Python SDK
-Python interface for a wallet service.
+Python interface for a wallet service.x
 
 # Table Of Contents
 - [Overview](#overview)
@@ -17,9 +17,7 @@ import wallet_sdk
 import sys
 
 # Initialize the client
-c = wallet_sdk.WalletClient(api_url='http://127.0.0.1:8000',
-                            authority_id='<your authority id>,
-                            private_key=b'<your authority private key>')
+c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json")
 				 
 # Ensure wallet service is operational
 try:
