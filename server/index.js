@@ -263,8 +263,10 @@ async function main() {
 	   // Run command
 	   switch (cmd) {
 	   case `api`:
-		  app.listen(config.port, () => {
-			 console.log(`API server listening at :${config.port}`)
+		  await new Promise((resolve, reject) => {
+			 app.listen(config.port, () => {
+				console.log(`API server listening at :${config.port}`)
+			 })
 		  })
 		  break
 	   case `create-authority`:
