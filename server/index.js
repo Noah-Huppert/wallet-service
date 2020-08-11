@@ -315,7 +315,7 @@ error: incorrect number of arguments provided`)
 		  // Generate wallet client configuration file
 		  console.log(JSON.stringify({
 			 config_schema_version: `0.1.0`,
-			 api_base_url: ar.server_host,
+			 api_base_url: ar.api_base_url,
 			 authority_id: authority.id,
 			 private_key: privPEM,
 		  }, null, 4))
