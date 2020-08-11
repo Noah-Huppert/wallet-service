@@ -41,6 +41,23 @@ print(entry) # {'authority_id': '<your authority id>', 'user_id': '0', 'created_
 # Get the value of all wallets
 wallets = c.get_wallets()
 print(wallets) # [{'id': '0', 'total': 10}]
+
+# Add a few more entries
+c.create_entry(user_id='1', amount=200000, reason='family wealth')
+c.create_entry(user_id='2', amount=-3000, reason='vegas')
+c.create_entry(user_id='1', amount=-50000, reason='bought a tesla')
+c.create_entry(user_id='2', amount=100000, reason='won the lottery')
+
+# Find wallets of only users 0 and 2
+wallets_0_and_2 = c.get_wallets(user_ids=['0', '2'])
+print(wallets_0_and_2) # [{'id': '0', 'total': 10},
+                       #  {'id': '2', 'total': 97000}]
+
+# Find wallets but only take into account entries we've made
+my_transactions = c.get_wallets(authority_ids=['<your authority id>'])
+print(my_transactions) # [{'id': '0', 'total': 10},
+                       #  {'id': '1', 'total': 150000},
+                       #  {'id': '2', 'total': 97000}]
 ```
 
 # Request Credentials
