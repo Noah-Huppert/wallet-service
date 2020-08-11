@@ -1,5 +1,5 @@
 # Wallet Python SDK
-Python interface for a wallet service.x
+Python interface for a wallet service.
 
 # Table Of Contents
 - [Overview](#overview)
@@ -9,7 +9,7 @@ Python interface for a wallet service.x
 # Overview
 Wallet service Python 3 SDK.
 
-Install the `wallet-sdk` pip package. Then use the `WalletClient` class.
+Install the `wallet-sdk-Noah-Huppert` pip package. Then use the `WalletClient` class.
 
 ```py
 import wallet_sdk
@@ -54,7 +54,8 @@ pipenv shell
 ```
 
 # Package
-This section documents how the `wallet-sdk` pip package is generated.
+This section documents how the `wallet-sdk-Noah-Huppert` pip package 
+is generated.
 
 First activate the development python virtual environment:
 

@@ -9,10 +9,10 @@ SRC_DIR ?= wallet_sdk
 PKG ?= wallet_sdk
 PKG_DASHED ?= $(shell echo ${PKG} | sed 's/_/-/g')
 USERNAME ?= Noah_Huppert
+USERNAME_DASHED ?= $(shell echo ${USERNAME} | sed 's/_/-/g')
 VERSION ?= $(shell cat ${SRC_DIR}/VERSION)
 
-FILE_PREFIX ?= 
-DIST_FILES ?= ${DIST_DIR}/${PKG_DASHED}-${VERSION}.tar.gz ${DIST_DIR}/${PKG}-${VERSION}-py3-none-any.whl
+DIST_FILES ?= ${DIST_DIR}/${PKG_DASHED}-${USERNAME_DASHED}-${VERSION}.tar.gz ${DIST_DIR}/${PKG}_${USERNAME}-${VERSION}-py3-none-any.whl
 
 # Build distribution files
 ${DIST_FILES}: $(wildcard ${SRC_DIR}/*.py)
