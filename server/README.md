@@ -19,7 +19,7 @@ npm install
 Start the API server:
 
 ```
-npm start
+node index.js
 ```
 
 # Operations
@@ -28,24 +28,21 @@ First create an authority request JSON file with the following fields:
 
 ```json
 {
-    "server_host": "<your API server's host, include port and scheme, no trailing slahs>",
+    "api_base_url": "<your API server's host, include scheme, host, and port, no trailing slashes>",
     "name": "<name of authority>",
     "owner": {
-	   "discord_id": "<Discord ID of owner>",
+	   "contact": "<owner contact details, any format>",
 	   "nickname": "<friendly name for owner>"
     }
 }
 ```
 
-Next run the `create-authority` server command with this file as an input. 
-Additionally an output path to this new authority's client configuration file 
-should be provided.
+Next run the `create-authority` server command with this file as an input.
 
 ```
-npm start create-authority <authority request file> <authority client config out>
+node index.js create-authority <authority request file>
 ```
 
-This will save the authority in the database. A file with the name specified by 
-the `<authority client config out>` argument should also be present. This will 
-contain all the information an authority client SDK requires to connect 
-and authenticate.
+This will save the authority in the database. The corresponding authority client
+configuration JSON will be printed out. This will contain all the information an
+authority client SDK requires to connect and authenticate.

@@ -27,8 +27,8 @@ const config = {
  * Schema for an authority request file which is passed into the 
  * create-authority command.
  */
-const authorityRequestFileSchema = joi.object({
-    server_host: joi.string().required(),
+const AUTHORITY_REQUEST_FILE_SCHEMA = joi.object({
+    api_base_url: joi.string().required(),
     name: joi.string().required(),
     owner: joi.object({
 	   contact: joi.string().required(),
@@ -253,7 +253,11 @@ async function main() {
 
 		  const db = mongoose.connection
 
-		  console.log(`connected to MongoDB`)
+		  // Only log in API command, since output of create-authority should be
+		  // authority client configuration JSON.
+		  if (cmd == `api`) {
+			 console.log(`connected to MongoDB`)
+		  }
 	   }
 
 	   // Run command
@@ -265,29 +269,28 @@ async function main() {
 		  break
 	   case `create-authority`:
 		  // Read authority request JSON file
-		  if (process.argv.length < 5) {
-			 die(`usage: index.js create-authority <authority request file> <authority client output>
+		  if (process.argv.length < 4) {
+			 die(`usage: index.js create-authority <authority request file>
 error: incorrect number of arguments provided`)
 		  }
-		  authorityRequestPath = process.argv[3]
-		  authorityClientOutPath = process.argv[4]
+		  arPath = process.argv[3]
 
-		  const authorityRequestData = await fsPromises.readFile(
-			 authorityRequestPath)
-		  const authorityRequestJSON = JSON.parse(authorityRequestData)
+		  const arDat = await fsPromises.readFile(arPath)
+		  const arJSON = JSON.parse(arDat)
 		  
-		  const authorityRequestValidate = authorityRequestFileSchema.validate(
-			 authorityRequestJSON)
-		  if (authorityRequestValidate.error) {
-			 die(`error: authority request file not in the correct format: ${authorityRequestValidate.error}`)
+		  const arValidate = AUTHORITY_REQUEST_FILE_SCHEMA.validate(
+			 arJSON)
+		  if (arValidate.error) {
+			 die(`error: authority request file not in the correct `+
+				`format: ${arValidate.error}`)
 		  }
-		  const authorityRequest = authorityRequestValidate.value
-
-		  console.log(`Read authority create request:
-${JSON.stringify(authorityRequest, null, 4)}`)
+		  const ar = arValidate.value
 
 		  // Generate key pair
-		  const pair = await keypairs.generate({ kty: `ECDSA`, namedCurve: `P-256` })
+		  const pair = await keypairs.generate({
+			 kty: `ECDSA`,
+			 namedCurve: `P-256`
+		  })
 		  
 		  const pubPEM = await keypairs.export({
 			 jwk: pair.public,
@@ -298,34 +301,22 @@ ${JSON.stringify(authorityRequest, null, 4)}`)
 			 encoding: `pem`
 		  })
 
-		  console.log(`Generated authority key pair:
-${pubPEM}
-
-${privPEM}`)
-
 		  // Save model
 		  var authority = new AuthorityModel({
-			 name: authorityRequest.name,
-			 owner: authorityRequest.owner,
+			 name: ar.name,
+			 owner: ar.owner,
 			 public_key: pubPEM,
 		  })
 
 		  await authority.save()
 
-		  console.log(`Saved authority in database:
-${JSON.stringify(authority, null, 4)}`)
-
 		  // Generate wallet client configuration file
-		  await fsPromises.writeFile(authorityClientOutPath, JSON.stringify({
+		  console.log(JSON.stringify({
 			 config_schema_version: `0.1.0`,
-			 api_base_url: authorityRequest.server_host,
+			 api_base_url: ar.server_host,
 			 authority_id: authority.id,
 			 private_key: privPEM,
-		  }, null, 4), {
-			 flag: "w",
-		  })
-
-		  console.log(`Wrote authority client configuration file to ${authorityClientOutPath}`)
+		  }, null, 4))
 		  break
 	   case `help`:
 		  console.log(`index.js - wallet service main
@@ -340,9 +331,8 @@ COMMANDS
 
     create-authority    Create a new authority and save it in the database. A file
                         path to a JSON authority request file (containing fields
-                        from the authorityRequestFileSchema) must be provided.
-                        Followed by a path at which you would like to output this
-                        new authority's client configuration file.
+                        from the AUTHORITY_REQUEST_FILE_SCHEMA) must be provided.
+                        The authority's client configuration JSON will be outputed.
 
     help                Show this help text.
 `)
@@ -353,8 +343,7 @@ error: invalid command "${cmd}"`)
 		  break
 	   }
 
-	   console.log(`done`)
-	 //  process.exit()
+	   process.exit()
     } catch (e) {
 	   console.trace(e)
     }
