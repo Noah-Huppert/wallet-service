@@ -25,7 +25,7 @@ There are several different versions used in this project:
   path `/api/v<api version>`.
 - **Python SDK**: PyPi [semantic version](https://semver.org/) of the Python 
   client package.
-- **Client configuration file schema version**: Version used to identify the 
+- **Client configuration file schema version**: Version which identifies the 
   schema used in client configuration files.
   
 All versions increment separately and for different reasons:
@@ -37,9 +37,9 @@ All versions increment separately and for different reasons:
   the [semantic versioning scheme](https://semver.org/).
 - **Client configuration file schema version**: When the structure of client
   configuration files changes. This will require that authorities re-deploy 
-  their own applications with configuration files.
+  their own applications with updated configuration files.
 
 Versions do not have to match other version (ex., The API & Python SDK are not 
 released in lock step). However sometimes one may have to update a component to 
-support a new version of another component (ex., Update The Python SDK to 
+support a new version of another component (ex., Update the Python SDK to 
 support a new API version).
