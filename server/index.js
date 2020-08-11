@@ -12,10 +12,29 @@ function die(msg, code) {
     process.exit(code || 1)
 }
 
+/**
+ * API version, for compatibility. Simple incrementing number. Never 
+ * backwards compatible.
+ */
+const API_VERSION = `0`
+
 const config = {
     port: process.env.APP_PORT || 8000,
-    dbURI: process.env.DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
+    dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`
 }
+
+/**
+ * Schema for an authority request file which is passed into the 
+ * create-authority command.
+ */
+const authorityRequestFileSchema = joi.object({
+    server_host: joi.string().required(),
+    name: joi.string().required(),
+    owner: joi.object({
+	   discord_id: joi.string().required(),
+	   nickname: joi.string().required(),
+    })
+})
 
 // Models
 var authoritySchema = new mongoose.Schema({
@@ -39,8 +58,10 @@ var EntryModel = mongoose.model(`Entry`, entrySchema)
 
 // Express configuration
 const app = express()
+const apiRouter = express.Router()
 
 app.use(bodyParser.json())
+app.use(`/api/v${API_VERSION}`, apiRouter)
 
 /**
  * Does what __auth does, but ensures errors are never leaked to a caller.
@@ -143,7 +164,7 @@ function getParamList(req, paramName) {
 /**
  * External indication that service is operating.
  */
-app.get(`/health`, (req, res) => {
+apiRouter.get(`/health`, (req, res) => {
     res.json({
 	   ok: true,
     })
@@ -152,7 +173,7 @@ app.get(`/health`, (req, res) => {
 /**
  * Get wallets, can be filtered.
  */
-app.get(`/wallets`, auth, async (req, res) => {
+apiRouter.get(`/wallets`, auth, async (req, res) => {
     let userIds = getParamList(req, `user_ids`)
     let authorityIds = getParamList(req, `authority_ids`)
 
@@ -190,7 +211,7 @@ const entryReqSchema = joi.object({
 /**
  * Create an entry.
  */
-app.post(`/entry`, auth, validateBody(entryReqSchema), async (req, res) => {
+apiRouter.post(`/entry`, auth, validateBody(entryReqSchema), async (req, res) => {
     let entry = new EntryModel({
 	   authority_id: req.authority.id,
 	   user_id: req.body.user_id,
@@ -232,7 +253,7 @@ async function main() {
 
 		  const db = mongoose.connection
 
-		  console.log(`connect to MongoDB`)
+		  console.log(`connected to MongoDB`)
 	   }
 
 	   // Run command
@@ -243,26 +264,29 @@ async function main() {
 		  })
 		  break
 	   case `create-authority`:
-		  // Read model data from JSON file
-		  if (process.argv.length < 4) {
-			 die(`usage: index.js create-authority <src file>
-error: <src file> argument required`)
+		  // Read authority request JSON file
+		  if (process.argv.length < 5) {
+			 die(`usage: index.js create-authority <authority request file> <authority client output>
+error: incorrect number of arguments provided`)
 		  }
-		  src = process.argv[3]
+		  authorityRequestPath = process.argv[3]
+		  authorityClientOutPath = process.argv[4]
 
-		  const data = await fsPromises.readFile(src)
-		  const parsedData = JSON.parse(data)
-		  console.log(`loaded data from ${src}
-${JSON.stringify(parsedData, null, 4)}`)
+		  const authorityRequestData = await fsPromises.readFile(
+			 authorityRequestPath)
+		  const authorityRequestJSON = JSON.parse(authorityRequestData)
+		  
+		  const authorityRequestValidate = authorityRequestFileSchema.validate(
+			 authorityRequestJSON)
+		  if (authorityRequestValidate.error) {
+			 die(`error: authority request file not in the correct format: ${authorityRequestValidate.error}`)
+		  }
+		  const authorityRequest = authorityRequestValidate.value
 
-		  // Save in db
-		  var authority = new AuthorityModel(parsedData)
+		  console.log(`Read authority create request:
+${JSON.stringify(authorityRequest, null, 4)}`)
 
-		  console.log(`saving new authority model
-${JSON.stringify(authority, null, 4)}`)
-		  await authority.save()
-		  break
-	   case `authority-keygen`:
+		  // Generate key pair
 		  const pair = await keypairs.generate({ kty: `ECDSA`, namedCurve: `P-256` })
 		  
 		  const pubPEM = await keypairs.export({
@@ -274,11 +298,34 @@ ${JSON.stringify(authority, null, 4)}`)
 			 encoding: `pem`
 		  })
 
-		  console.log(`public key (PEM)
+		  console.log(`Generated authority key pair:
 ${pubPEM}
 
-private key (PEM)
 ${privPEM}`)
+
+		  // Save model
+		  var authority = new AuthorityModel({
+			 name: authorityRequest.name,
+			 owner: authorityRequest.owner,
+			 public_key: pubPEM,
+		  })
+
+		  await authority.save()
+
+		  console.log(`Saved authority in database:
+${JSON.stringify(authority, null, 4)}`)
+
+		  // Generate wallet client configuration file
+		  await fsPromises.writeFile(authorityClientOutPath, JSON.stringify({
+			 config_schema_version: `0.1.0`,
+			 api_base_url: authorityRequest.server_host,
+			 authority_id: authority.id,
+			 private_key: privPEM,
+		  }, null, 4), {
+			 flag: "w",
+		  })
+
+		  console.log(`Wrote authority client configuration file to ${authorityClientOutPath}`)
 		  break
 	   case `help`:
 		  console.log(`index.js - wallet service main
@@ -291,16 +338,18 @@ COMMANDS
 
     api                 Start HTTP API server
 
-    create-authority    Create a new authority model. Pass the name of a JSON file
-                        which contains the authority model data. See the 
-                        authoritySchema in the source code for the required format.
-
-    authority-keygen    Generate an ECDSA P-256 key pair. Use the resulting public
-                        key in an authority definition and the private key to sign
-                        JWT tokens in another service.
+    create-authority    Create a new authority and save it in the database. A file
+                        path to a JSON authority request file (containing fields
+                        from the authorityRequestFileSchema) must be provided.
+                        Followed by a path at which you would like to output this
+                        new authority's client configuration file.
 
     help                Show this help text.
 `)
+		  break
+	   default:
+		  die(`usage: index.js api|create-authority|help
+error: invalid command "${cmd}"`)
 		  break
 	   }
 
