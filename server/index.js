@@ -13,11 +13,19 @@ function die(msg, code) {
 }
 
 /**
- * API version, for compatibility. Simple incrementing number. Never 
- * backwards compatible.
+ * API version, for compatibility. Semantic version. Array elements in 
+ * order: major minor patch.
  */
-const API_VERSION = `0`
+const API_VERSION = [ 0, 1, 0 ]
 
+/**
+ * HTTP API path prefix, computed from the API_VERSION.
+ */
+const API_PATH_PREFIX = `/api/v${API_VERSION[0]}`
+
+/**
+ * Server configuration.
+ */
 const config = {
     port: process.env.APP_PORT || 8000,
     dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`
@@ -61,7 +69,7 @@ const app = express()
 const apiRouter = express.Router()
 
 app.use(bodyParser.json())
-app.use(`/api/v${API_VERSION}`, apiRouter)
+app.use(API_PATH_PREFIX, apiRouter)
 
 /**
  * Does what __auth does, but ensures errors are never leaked to a caller.
@@ -167,6 +175,7 @@ function getParamList(req, paramName) {
 apiRouter.get(`/health`, (req, res) => {
     res.json({
 	   ok: true,
+	   version: `${API_VERSION[0]}.${API_VERSION[1]}.${API_VERSION[2]}`,
     })
 })
 
@@ -265,7 +274,8 @@ async function main() {
 	   case `api`:
 		  await new Promise((resolve, reject) => {
 			 app.listen(config.port, () => {
-				console.log(`API server listening at :${config.port}`)
+				console.log(`API server listening at `+
+						  `:${config.port}${API_PATH_PREFIX}`)
 			 })
 		  })
 		  break

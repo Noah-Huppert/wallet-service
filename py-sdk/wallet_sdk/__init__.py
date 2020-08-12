@@ -4,15 +4,72 @@ Client SDK for the [Wallet Service project](https://github.com/Noah-Huppert/wall
 
 The WalletClient provides a programmatic interface to the wallet service HTTP API.
 """
-from typing import List, Dict, Optional
+from typing import List, Dict, Tuple, Optional, Callable
 import json
 
 import requests
 import voluptuous as v
 import jwt
 
-# Version of the API with which the client knows how to communicate.
-API_VERSION = '0'
+# Version of the API with which the client knows how to communicate. List elements
+# in the order: major minor
+COMPATIBLE_API_VERSION = ( 0, 1 )
+
+# Version of client configuration file which the client knows how to parse. List of
+# elements in the order: major minor
+COMPATIBLE_CONFIG_SCHEMA_VERSION = ( 0, 1 )
+
+def SemVer(compatible_at: Optional[Tuple[int, int]]=None) -> Callable[[str], Tuple[int, int, int]]:
+    """ Validates that a string is formatted as semantic version: major.minor.patch.
+    Additionally ensures that this semantic version is compatible with the provided
+    compatible_at.
+
+    Arguments:
+    - compatible_at: Semantic version which program is compatible with, the 
+      validator checks the parsed semantic version for compatibility if this is 
+      not None.
+
+    Returns: Validation function.
+    """
+    def validate(value: str) -> Tuple[int, int, int]:
+        """ Validates based on the requirements defined in SemVer().
+        Arugments:
+        - value: To validate.
+
+        Returns: Value if valid.
+
+        Raises:
+        - ValueError: If invalid.
+        """
+        parts = value.split(".")
+        if len(parts) != 3:
+            raise ValueError("should be 3 integers seperated by dots in the "+
+                             "format: major.minor.patch")
+
+        try:
+            major = int(parts[0])
+        except ValueError as e:
+            raise ValueError(f"failed to parse major component as an integer: {e}")
+
+        try:
+            minor = int(parts[1])
+        except ValueError as e:
+            raise ValueError(f"failed to parse minor component as an integer: {e}")
+
+        try:
+            patch = int(parts[2])
+        except ValueError as e:
+            raise ValueError(f"failed to parse patch component as an integer: {e}")
+
+        if compatible_at is not None:
+            if major != compatible_at[0] or minor > compatible_at[1]:
+                raise ValueError(f"semantic versions are not compatible, was: "+
+                                 f"{major}.{minor}.{patch}, compatible version: "+
+                                 f"{compatible_at[0]}.{compatible_at[1]}.*")
+
+        return (major, minor, patch)
+
+    return validate
 
 class WalletAPIError(Exception):
     """ Indicates an error occurred with a wallet service API call.
@@ -98,8 +155,8 @@ class WalletClient:
     """
 
     CONFIG_FILE_SCHEMA = v.Schema({
-        # Seperate from server API or py sdk version
-        v.Required('config_schema_version'): '0.1.0',
+        v.Required('config_schema_version'): SemVer(
+            compatible_at=COMPATIBLE_CONFIG_SCHEMA_VERSION),
         v.Required('api_base_url'): str,
         v.Required('authority_id'): str,
         v.Required('private_key'): str,
@@ -114,6 +171,8 @@ class WalletClient:
     })
 
     HEALTH_RESP_SCHEMA = v.Schema({
+        v.Required('version'): SemVer(
+            compatible_at=COMPATIBLE_API_VERSION),
         v.Required('ok'): True,
     })
 
@@ -143,6 +202,15 @@ class WalletClient:
         self.auth_token = jwt.encode({
             'sub': authority_id,
         }, self.private_key, algorithm='ES256')
+
+
+        # True if the wallet service's health has been checked and is good,
+        # False if checked and bad, and
+        # None if not checked.
+        #
+        # The __do_request__() method automatically checks health if None and
+        # raises a WalletAPIError if False.
+        self.service_health_good = None
 
     def LoadFromConfig(config_file_path: str) -> 'WalletClient':
         """ Loads Wallet API client configuration from a config file.
@@ -175,18 +243,77 @@ class WalletClient:
                                     f"\"{config_file_path}\": {e}")
 
         # Initialize
-        return WalletClient(api_url="{}/api/v{}".format(config['api_base_url'],
-                                                        API_VERSION),
-                            authority_id=config['authority_id'],
-                            private_key=config['private_key'])
+        return WalletClient(
+            api_url="{}/api/v{}".format(config['api_base_url'], COMPATIBLE_API_VERSION[0]),
+            authority_id=config['authority_id'],
+            private_key=config['private_key'])
+
+    def __do_request__(self, method: str, path: str, resp_schema: v.Schema=None,
+                       __is_health_check_req__=False,
+                       **kwargs) -> requests.Response:
+        """ Performs an HTTP request to the API. Handles error checking, response
+        parsing and validation, and authorization.
+        Arguments:
+        - method: HTTP method, all caps.
+        - path: Path to request, appended to self.api_url.
+        - resp_schema: Schema which if not None will be used to validate 
+          the response.
+        - __is_health_check_req__: If true the method won't automatically check
+          the wallet service's health if self.service_health_good is None. This
+          prevents infinite loops when __do_request__ is used internally to perform
+          check_service_health().
+        - kwargs: Any additional args which are accepted by requests.request (https://requests.readthedocs.io/en/master/api/#requests.request)
+
+        Returns: The response.
+        """
+        # Check service health if we haven't done so already
+        if self.service_health_good != True and not __is_health_check_req__:
+            try:
+                self.check_service_health()
+            except WalletAPIError as e:
+                 raise WalletAPIError(
+                     self.api_url + path, method, "The wallet service's health "+
+                     "had not been checked yet, upon checking the service's "+
+                     "health was found to be bad: {}".format(str(e)))
+                                      
+        # Add authorization header
+        if 'headers' not in kwargs:
+            kwargs['headers'] = {}
+
+        if 'Authorization' not in kwargs['headers']:
+            kwargs['headers']['Authorization'] = self.auth_token
+        
+        try:
+            # Make request
+            resp = requests.request(url=self.api_url + path,
+                                    method=method,
+                                    **kwargs)
+
+            # Check response
+            WalletAPIError.CheckResp(resp, resp_schema)
+
+            return resp
+        except requests.RequestException as e:
+            raise WalletAPIError(self.api_url + path, method, str(e))
 
     def check_service_health(self):
         """ Ensures that the wallet service is operating.
+        Stores the result in self.wallet_service_good.
+        Returns: True if service halth is good. False is never returned, instead
+                 the WalletAPIError exception is used to indicate failure.
+
         Raises:
         - WalletAPIError: If the service is not operating correctly.
         """
-        resp = requests.get(self.api_url + '/health')
-        WalletAPIError.CheckResp(resp, WalletClient.HEALTH_RESP_SCHEMA)
+        try:
+            self.__do_request__('GET', '/health', WalletClient.HEALTH_RESP_SCHEMA,
+                                __is_health_check_req__=True)
+        except WalletAPIError as e:
+            self.wallet_service_good = False
+            raise e
+
+        self.wallet_service_good = True
+        return True
 
     def get_wallets(self, user_ids: List[str]=[],
                     authority_ids: List[str]=[]) -> List[Dict[str, object]]:
@@ -201,14 +328,12 @@ class WalletClient:
         Raises:
         - WalletAPIError
         """
-        resp = requests.get(self.api_url + '/wallets', params={
-            'user_ids': ",".join(user_ids),
-            'authority_ids': ",".join(authority_ids),
-        }, headers={
-            'Authorization': self.auth_token,
-        })
-        
-        WalletAPIError.CheckResp(resp, WalletClient.GET_WALLETS_RESP_SCHEMA)
+        resp = self.__do_request__(
+            'GET', '/wallets', resp_schema=WalletClient.GET_WALLETS_RESP_SCHEMA,
+            params={
+                'user_ids': ",".join(user_ids),
+                'authority_ids': ",".join(authority_ids),
+            })
         
         return resp.json()['wallets']
 
@@ -225,15 +350,13 @@ class WalletClient:
         Raises:
         - WalletAPIError
         """
-        resp = requests.post(self.api_url + '/entry', json={
-            'user_id': user_id,
-            'amount': amount,
-            'reason': reason,
-        }, headers={
-            'Authorization': self.auth_token,
-        })
-
-        WalletAPIError.CheckResp(resp, WalletClient.CREATE_ENTRY_RESP_SCHEMA)
+        resp = self.__do_request__(
+            'POST', '/entry', resp_schema=WalletClient.CREATE_ENTRY_RESP_SCHEMA,
+            json={
+                'user_id': user_id,
+                'amount': amount,
+                'reason': reason,
+            })
 
         return resp.json()['entry']
         

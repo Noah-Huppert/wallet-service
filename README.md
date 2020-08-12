@@ -18,28 +18,63 @@ A Python 3 SDK (pip package `wallet-sdk-Noah-Huppert`) is provided.
 See the [`server/`](./server) and [`py-sdk/`](./py-sdk) directories.
 
 # Version Compatibility
+## Versions Overview
 There are several different versions used in this project:
 
-- **API version**: Simple integer to version API's behavior. Never 
-  backwards compatible. The API server will run under the 
-  path `/api/v<api version>`.
+- **API version**: API behavior [semantic version](https://semver.org/). The API
+  server will run under the path `/api/v<major>`.
 - **Python SDK**: PyPi [semantic version](https://semver.org/) of the Python 
   client package.
-- **Client configuration file schema version**: Version which identifies the 
-  schema used in client configuration files.
+- **Client configuration file schema version**: 
+  [semantic version](https://semver.org/) which identifies the schema used in 
+  client configuration files.
   
 All versions increment separately and for different reasons:
 
-- **API version**: When breaking changes are made to the behavior of the 
-  HTTP API. This will cause the server to host under a different 
-  `/api/v<api version>` path.
+- **API version**: When any update to the behavior of the HTTP API is made. 
+  Follows the [semantic versioning scheme](https://semver.org/). This will cause
+  the server to host under a different `/api/v<major>` path.
 - **Python SDK**: Whenever any update to the Python SDK code is made. Follows
   the [semantic versioning scheme](https://semver.org/).
 - **Client configuration file schema version**: When the structure of client
-  configuration files changes. This will require that authorities re-deploy 
-  their own applications with updated configuration files.
+  configuration files changes. Follows
+  the [semantic versioning scheme](https://semver.org/). Major or minor version
+  changes will require that authorities re-deploy their own applications with
+  updated configuration files.
 
 Versions do not have to match other version (ex., The API & Python SDK are not 
 released in lock step). However sometimes one may have to update a component to 
 support a new version of another component (ex., Update the Python SDK to 
 support a new API version).
+
+## Version Comparability Matrix
+The API version and Python SDK version have a compatibility relationship:
+
+**By API version**:
+
+| API version | Compatible Python SDK versions |
+|-------------|--------------------------------|
+| 0.1.0       | 0.1.0                          |
+
+
+**By Python SDK version**:
+
+| Python SDK version | Compatible API versions |
+|--------------------|-------------------------|
+| 0.1.0              | 0.1.0                   |
+
+
+The Python SDK version and client configuration file schema version have a
+compatibility relationship:
+
+**By Python SDK version**:
+
+| Python SDK version | Compatible client configuration file schema versions |
+|--------------------|------------------------------------------------------|
+| 0.1.0              | 0.1.0                                                |
+
+**By client configuration file schema version**:
+
+| Client configuration file schema version | Compatible Python SDK versions |
+|------------------------------------------|--------------------------------|
+| 0.1.0                                    | 0.1.0                          |
