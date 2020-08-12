@@ -101,9 +101,14 @@ is generated.
    ```
    pipenv shell
    ```
-2. Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
+2. Update the version
+   1. Pick new [semantic version](https://semver.org/). Change major if not 
+	  backwards compatible changes, minor for new backwards compatible features,
+	  and patch for new backwards compatible bug fixes.
+   2. Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
+   3. Ensure the API compatible version `COMPATIBLE_API_VERSION` is correct.
+   4. Update [the compatibility matrix in the general `README.md`](../README.md#version-compatibility-matrix).
 3. Merge code into the `master` branch.
-4. Update [the compatibility matrix in the general `README.md`](../README.md#compatibility-matrix).
 4. Publish to test pip
    ```
    make publish

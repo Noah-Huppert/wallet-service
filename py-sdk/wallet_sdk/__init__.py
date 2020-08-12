@@ -6,6 +6,7 @@ The WalletClient provides a programmatic interface to the wallet service HTTP AP
 """
 from typing import List, Dict, Tuple, Optional, Callable
 import json
+import os
 
 import requests
 import voluptuous as v
@@ -39,33 +40,35 @@ def SemVer(compatible_at: Optional[Tuple[int, int]]=None) -> Callable[[str], Tup
         Returns: Value if valid.
 
         Raises:
-        - ValueError: If invalid.
+        - v.Invalid: If invalid.
         """
         parts = value.split(".")
         if len(parts) != 3:
-            raise ValueError("should be 3 integers seperated by dots in the "+
+            raise v.Invalid("should be 3 integers seperated by dots in the "+
                              "format: major.minor.patch")
 
         try:
             major = int(parts[0])
         except ValueError as e:
-            raise ValueError(f"failed to parse major component as an integer: {e}")
+            raise v.Invalid(f"failed to parse major component as an integer: {e}")
 
         try:
             minor = int(parts[1])
         except ValueError as e:
-            raise ValueError(f"failed to parse minor component as an integer: {e}")
+            raise v.Invalid(f"failed to parse minor component as an integer: {e}")
 
         try:
             patch = int(parts[2])
         except ValueError as e:
-            raise ValueError(f"failed to parse patch component as an integer: {e}")
+            raise v.Invalid(f"failed to parse patch component as an integer: {e}")
 
         if compatible_at is not None:
-            if major != compatible_at[0] or minor > compatible_at[1]:
-                raise ValueError(f"semantic versions are not compatible, was: "+
-                                 f"{major}.{minor}.{patch}, compatible version: "+
-                                 f"{compatible_at[0]}.{compatible_at[1]}.*")
+            if major != compatible_at[0] or minor < compatible_at[1]:
+                raise v.Invalid(f"semantic versions are not compatible, was: "+
+                                 f"major={major} minor={minor} patch={patch}, "+
+                                 f"compatible version(s): "+
+                                 f"major={compatible_at[0]} "+
+                                 f"minor>={compatible_at[1]} patch=*")
 
         return (major, minor, patch)
 
@@ -230,6 +233,9 @@ class WalletClient:
             'sub': authority_id,
         }, self.private_key, algorithm='ES256')
 
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                               "./VERSION"), "r") as f:
+            self.__version__ = f.read().replace("\n", "")
 
         # True if the wallet service's health has been checked and is good,
         # False if checked and bad, and
@@ -279,7 +285,7 @@ class WalletClient:
                        __is_health_check_req__=False,
                        **kwargs) -> requests.Response:
         """ Performs an HTTP request to the API. Handles error checking, response
-        parsing and validation, and authorization.
+        parsing and validation, user agent, and authorization.
         Arguments:
         - method: HTTP method, all caps.
         - path: Path to request, appended to self.api_url.
@@ -309,6 +315,10 @@ class WalletClient:
 
         if 'Authorization' not in kwargs['headers']:
             kwargs['headers']['Authorization'] = self.auth_token
+
+        if 'User-Agent' not in kwargs['headers']:
+            kwargs['headers']['User-Agent'] = "wallet-service-py-sdk {}".format(
+                self.__version__)
         
         try:
             # Make request

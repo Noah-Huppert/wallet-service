@@ -5,7 +5,7 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 
 VERSION = None
 with open(os.path.join(DIR, "VERSION"), 'r') as f:
-    VERSION = f.read()
+    VERSION = f.read().replace("\n", "")
 
 with open(os.path.join(DIR, "../README.md"), 'r') as fh:
     long_description = fh.read()
