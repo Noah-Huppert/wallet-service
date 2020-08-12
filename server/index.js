@@ -87,6 +87,10 @@ promClient.collectDefaultMetrics({
     prefix: config.metricsPrefix,
 })
 
+/**
+ * Handles all logic related to measuring Prometheus metrics. Simply call the
+ * the different measurement methods in their appropriate locations.
+ */
 class MetricsClient {
     /**
 	* Initializes.
@@ -94,11 +98,18 @@ class MetricsClient {
 	*/
     constructor(prefix) {
 	   this.requestDuration = new promClient.Histogram({
-		  name: `${prefix}:request_duration`,
+		  name: `${prefix}request_duration`,
 		  help: `Duration of HTTP requests in ms`,
 		  labelNames: [`user_agent`, `server_version`, `method`, `path`,
-					`status_code`],
+					`status_code`, `authorized_subject`],
 		  buckets: [0.1, 5, 15, 50, 100, 500],
+	   })
+
+	   this.errCount = new promClient.Counter({
+		  name: `${prefix}internal_error_count`,
+		  help: `Number of internal errors which have occurred`,
+		  labelNames: [`user_agent`, `server_version`, `method`, `path`,
+					`status_code`, `error_msg`, `error_stack`],
 	   })
     }
 
@@ -117,7 +128,25 @@ class MetricsClient {
 		  method: req.method,
 		  path: req.path,
 		  status_code: res.statusCode,
+		  authorized_subject: req.authority ? req.authority.id : undefined,
 	   })
+    }
+
+    /**
+	* Measures an internal error's details.
+	* @param msg Error message.
+	* @param stack Error stack trace.
+	*/
+    measureInternalError(err, req, res) {
+	   this.errCount.labels({
+		  user_agent: req.get(`User-Agent`),
+		  server_version: `${API_VERSION[0]}.${API_VERSION[1]}.${API_VERSION[2]}`,
+		  method: req.method,
+		  path: req.path,
+		  status_code: res.statusCode,
+		  error_msg: err.msg,
+		  error_stack: err.stack,
+	   }).inc()
     }
 }
 const metricsClient = new MetricsClient(config.metricsPrefix)
@@ -153,15 +182,19 @@ const reqErrHndlr = (err, req, res, next) => {
 	   path: req.path,
 	   user_agent: req.get(`User-Agent`),
 	   error: {
+		  message: err.message,
 		  stack: err.stack,
 		  status_code: err.statusCode,
 	   },
     })
 
+    metricsClient.measureInternalError(err, req, res)
+
     // If statement from: http://expressjs.com/en/guide/error-handling.html
     if (res.headersSent) {
 	   return next(err)
     }
+    
     res.status(500).json({
 	   error: `an internal error has occurred`,
     })
@@ -193,7 +226,9 @@ async function auth(req, res, next) {
     try {
 	   await __auth(req, res, next)
     } catch (err) {
-	   console.trace(`warning: failed to authenticate: ${err}`)
+	   log.warn(`failed to authenticate`, {
+		  error: err,
+	   })
 	   
 	   return res.status(403).json({
 		  error: `forbidden`,
@@ -208,6 +243,12 @@ async function auth(req, res, next) {
 async function __auth(req, res, next) {
     const authHeader = req.headers.authorization;
 
+    const reqLogDetails = {
+	   method: req.method,
+	   path: req.path,
+	   user_agent: req.userAgent,
+    }
+
     if (authHeader) {
 	   // First get claimed authority id from the token
 	   // Here we are not verifying the token. We are simply seeing who it claims
@@ -220,6 +261,11 @@ async function __auth(req, res, next) {
 	   var authority = await AuthorityModel.findById(unverifiedTok.sub)
 	   
 	   if (!authority) {
+		  log.warn(`Request JWT specified non-existant authority`, {
+			 ...reqLogDetails,
+			 unverified_token: unverifiedTok,
+		  })
+		  
 		  return res.status(403).json({
 			 error: `forbidden`,
 		  });
@@ -229,6 +275,11 @@ async function __auth(req, res, next) {
 	   await new Promise((resolve, reject) => {
 		  jwt.verify(authHeader, authority.public_key, (err, token) => {
 			 if (err) {
+				log.warn(`Failed to verify JWT`, {
+				    ...reqLogDetails,
+				    error: err,
+				})
+				
 				return reject(err)
 			 }
 
@@ -242,6 +293,8 @@ async function __auth(req, res, next) {
 	   next()
     } else {
 	   console.error(`warning: no authorization header`)
+
+	   log.warn(`No authorization data`, reqLogDetails)
 	   
         res.status(401).json({
 		  error: `authorization data required`,
