@@ -61,6 +61,8 @@ node index.js
 2. Merge code into `master` branch.
 3. Tag the current `master` head as `server-v<version>`.
 4. Create a GitHub release named `Server v<version>`.
+   - Include a short one or two sentence summary of the changes
+   - Include an h1 "Change log" section: list detailed changes
 
 # Circuit Breaker
 The HTTP API's health endpoint returns information about the service's health. 
