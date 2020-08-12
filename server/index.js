@@ -6,6 +6,21 @@ const jwt = require(`jsonwebtoken`)
 const bodyParser = require(`body-parser`)
 const keypairs = require(`keypairs`)
 const joi = require(`@hapi/joi`)
+const promClient = require(`prom-client`)
+const winston = require(`winston`)
+const methodOverride = require(`method-override`)
+
+const log = new winston.createLogger({
+    level: `info`,
+    defaultMeta: { service: `wallet-server` },
+    transports: process.env.NODE_ENV === `production` ? [
+	   new winston.transports.Console(),
+    ] : [
+	   new winston.transports.Console({
+		  format: winston.format.simple(),
+	   }),
+    ]
+})
 
 function die(msg, code) {
     console.error(msg)
@@ -27,7 +42,8 @@ const API_PATH_PREFIX = `/api/v${API_VERSION[0]}`
  * Server configuration.
  */
 const config = {
-    port: process.env.APP_PORT || 8000,
+    apiPort: process.env.APP_API_PORT || 8000,
+    metricsPrefix: process.env.APP_METRICS_PREFIX || `wallet_server`,
     dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
     disabled: process.env.APP_DISABLED,
 }
@@ -65,12 +81,86 @@ var entrySchema = new mongoose.Schema({
 })
 var EntryModel = mongoose.model(`Entry`, entrySchema)
 
+// Metrics
+promClient.collectDefaultMetrics({
+    prefix: config.metricsPrefix,
+})
+
+class MetricsClient {
+    /**
+	* Initializes.
+	* @param prefix Metrics prefix.
+	*/
+    constructor(prefix) {
+	   this.requestDuration = new promClient.Histogram({
+		  name: `${prefix}:request_duration`,
+		  help: `Duration of HTTP requests in ms`,
+		  labelNames: [`user_agent`, `server_version`, `method`, `path`,
+					`status_code`],
+		  buckets: [0.1, 5, 15, 50, 100, 500],
+	   })
+    }
+
+    /**
+	* Measures a request handler.
+	* @param handler Function to run and measure.
+	*/
+    measureHandler(req, res, handler) {
+	   let reqDurationEnd = this.requestDuration.startTimer()
+	   
+	   handler()
+
+	   reqDurationEnd({
+		  user_agent: req.get(`User-Agent`),
+		  server_version: `${API_VERSION[0]}.${API_VERSION[1]}.${API_VERSION[2]}`,
+		  method: req.method,
+		  path: req.path,
+		  status_code: res.statusCode,
+	   })
+    }
+}
+const metricsClient = new MetricsClient(config.metricsPrefix)
+
 // Express configuration
 const app = express()
 const apiRouter = express.Router()
 
+// ... middleware
+app.use((req, res, next) => {
+    metricsClient.measureHandler(req, res, next)
+})
+app.use((req, res, next) => {
+    log.info(`Request`, {
+	   method: req.method,
+	   path: req.path,
+	   user_agent: req.get(`User-Agent`),
+    })
+
+    next()
+})
 app.use(bodyParser.json())
 app.use(API_PATH_PREFIX, apiRouter)
+
+// ... error handler
+app.use((err, req, res, next) => {
+    log.error(`Request handler error`, {
+	   method: req.method,
+	   path: req.path,
+	   user_agent: req.get(`User-Agent`),
+	   error: {
+		  stack: err.stack,
+		  status_code: err.statusCode,
+	   },
+    })
+
+    // If statement from: http://expressjs.com/en/guide/error-handling.html
+    if (res.headersSent) {
+	   return next(err)
+    }
+    res.status(500).json({
+	   error: `an internal error has occurred`,
+    })
+})
 
 /**
  * Does what __auth does, but ensures errors are never leaked to a caller.
@@ -181,6 +271,15 @@ apiRouter.get(`/health`, (req, res) => {
 })
 
 /**
+ * Prometheus metrics endpoint.
+ * NOTICE: Path not API versioned.
+ */
+app.get(`/metrics`, (req, res) => {
+    res.set(`Content-Type`, promClient.register.contentType)
+    res.send(promClient.register.metrics())
+})
+
+/**
  * Get wallets, can be filtered.
  */
 apiRouter.get(`/wallets`, auth, async (req, res) => {
@@ -266,9 +365,10 @@ async function main() {
 		  // Only log in API command, since output of create-authority should be
 		  // authority client configuration JSON.
 		  if (cmd == `api`) {
-			 console.log(`Connected to MongoDB`)
-			 console.log(`API version ${API_VERSION[0]}.${API_VERSION[1]}`+
-					   `.${API_VERSION[2]}`)
+			 log.info(`Connected to MongoDB`)
+			 log.info(`API version`, {
+				api_version: API_VERSION
+			 })
 		  }
 	   }
 
@@ -276,9 +376,11 @@ async function main() {
 	   switch (cmd) {
 	   case `api`:
 		  await new Promise((resolve, reject) => {
-			 app.listen(config.port, () => {
-				console.log(`API server listening at `+
-						  `:${config.port}${API_PATH_PREFIX}`)
+			 app.listen(config.apiPort, () => {
+				log.info(`API server listening`, {
+				    port: config.port,
+				    path_prefix: API_PATH_PREFIX,
+				})
 			 })
 		  })
 		  break
