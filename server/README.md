@@ -49,8 +49,17 @@ configuration JSON will be printed out. This will contain all the information an
 authority client SDK requires to connect and authenticate.
 
 ## Release
-1. Merge code into `master` branch.
-2. Update [the compatibility matrix in the general `README.md`](../README.md#compatibility-matrix).
+1. Bump version
+   1. Pick new [semantic version](https://semver.org/). Change major if not 
+	  backwards compatible changes, minor for new backwards compatible features,
+	  and patch for new backwards compatible bug fixes.
+   2. Update the `API_VERSION` variable in [`index.js`](./index.js).
+   3. If the major component of the version was changed determine how multiple 
+	  major versions will run at once, or create a
+	  [circuit breaker](#circuit-breaker) health response for the old 
+	  major version.
+   4. Update [the compatibility matrix in the general `README.md`](../README.md#version-compatibility-matrix).
+2. Merge code into `master` branch.
 3. Tag the current `master` head as `server-v<version>`.
 4. Create a GitHub release named `Server v<version>`.
 

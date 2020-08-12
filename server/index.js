@@ -266,7 +266,9 @@ async function main() {
 		  // Only log in API command, since output of create-authority should be
 		  // authority client configuration JSON.
 		  if (cmd == `api`) {
-			 console.log(`connected to MongoDB`)
+			 console.log(`Connected to MongoDB`)
+			 console.log(`API version ${API_VERSION[0]}.${API_VERSION[1]}`+
+					   `.${API_VERSION[2]}`)
 		  }
 	   }
 
