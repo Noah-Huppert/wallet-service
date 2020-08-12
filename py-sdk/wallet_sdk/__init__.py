@@ -20,7 +20,7 @@ COMPATIBLE_API_VERSION = ( 0, 1 )
 # elements in the order: major minor
 COMPATIBLE_CONFIG_SCHEMA_VERSION = ( 0, 1 )
 
-def SemVer(compatible_at: Optional[Tuple[int, int]]=None) -> Callable[[str], Tuple[int, int, int]]:
+def SemVer(compatible_at: Tuple[int, int]=None) -> Callable[[str], Tuple[int, int, int]]:
     """ Validates that a string is formatted as semantic version: major.minor.patch.
     Additionally ensures that this semantic version is compatible with the provided
     compatible_at.
