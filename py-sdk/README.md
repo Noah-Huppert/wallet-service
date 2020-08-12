@@ -102,12 +102,15 @@ is generated.
    pipenv shell
    ```
 2. Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
-3. Update [the compatibility matrix in the general `README.md`](../README.md#compatibility-matrix).
+3. Merge code into the `master` branch.
+4. Update [the compatibility matrix in the general `README.md`](../README.md#compatibility-matrix).
 4. Publish to test pip
    ```
    make publish
    ```
    Inspect package page to ensure everything looks good.
+5. Tag the current `master` as `py-sdk-v<version>`.
+6. Create a new GitHub release named `Python SDK v<version>`.
 5. Publish to pip:
    ```
    make publish PIP_REPO=pypi
