@@ -1,0 +1,2 @@
+include wallet_sdk/VERSION
+include ../LICENSE

@@ -21,6 +21,7 @@ setuptools.setup(
     url="https://github.com/Noah-Huppert/wallet-service/tree/master/py-sdk",
     packages=setuptools.find_packages(),
     install_requires=[ 'pyjwt', 'requests', 'voluptuous' ],
+    include_package_data=True, # So the files specified in MANIFEST.in are included
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

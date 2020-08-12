@@ -1,4 +1,4 @@
-.PHONY: publish
+.PHONY: clean build publish
 
 PYTHON ?= python3
 PIP_REPO ?= testpypi
@@ -14,8 +14,15 @@ VERSION ?= $(shell cat ${SRC_DIR}/VERSION)
 
 DIST_FILES ?= ${DIST_DIR}/${PKG_DASHED}-${USERNAME_DASHED}-${VERSION}.tar.gz ${DIST_DIR}/${PKG}_${USERNAME}-${VERSION}-py3-none-any.whl
 
+clean:
+	rm -rf ${DIST_DIR}
+	rm -rf build
+	rm -rf *.egg-info
+
+build: ${DIST_FILES}
+
 # Build distribution files
-${DIST_FILES}: $(wildcard ${SRC_DIR}/*.py)
+${DIST_FILES}: $(wildcard ${SRC_DIR}/*)
 	${PYTHON} ${SRC_DIR}/setup.py sdist bdist_wheel
 
 # Publish distribution to pip

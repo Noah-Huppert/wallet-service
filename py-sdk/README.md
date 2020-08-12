@@ -111,12 +111,16 @@ is generated.
 3. Merge code into the `master` branch.
 4. Publish to test pip
    ```
+   make clean
    make publish
    ```
    Inspect package page to ensure everything looks good.
 5. Tag the current `master` as `py-sdk-v<version>`.
 6. Create a new GitHub release named `Python SDK v<version>`.
+   - Include a short one or two sentence summary of the changes
+   - Include an h1 "Change log" section: list detailed changes
 5. Publish to pip:
    ```
+   make clean
    make publish PIP_REPO=pypi
    ```
