@@ -44,7 +44,7 @@ const API_PATH_PREFIX = `/api/v${API_VERSION[0]}`
 const config = {
     apiPort: process.env.APP_API_PORT || 8000,
     metricsPort: process.env.APP_METRICS_PORT || 8001,
-    metricsPrefix: process.env.APP_METRICS_PREFIX || `wallet_server`,
+    metricsPrefix: process.env.APP_METRICS_PREFIX || `wallet_server:`,
     dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
     disabled: process.env.APP_DISABLED,
 }
