@@ -48,6 +48,12 @@ This will save the authority in the database. The corresponding authority client
 configuration JSON will be printed out. This will contain all the information an
 authority client SDK requires to connect and authenticate.
 
+## Release
+1. Merge code into `master` branch.
+2. Update [the compatibility matrix in the general `README.md`](../README.md#compatibility-matrix).
+3. Tag the current `master` head as `server-v<version>`.
+4. Create a GitHub release named `Server v<version>`.
+
 # Circuit Breaker
 The HTTP API's health endpoint returns information about the service's health. 
 

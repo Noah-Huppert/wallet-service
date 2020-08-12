@@ -7,7 +7,7 @@ Python interface for a wallet service.
 - [Overview](#overview)
 - [Request Credentials](#request-credentials)
 - [Development](#development)
-- [Packaging](#packaging)
+- [Operations](#operations)
 
 # Overview
 Wallet service Python 3 SDK.
@@ -92,20 +92,23 @@ Finally activate the environment:
 pipenv shell
 ```
 
-# Package
+# Operations
+## Release PyPi Package
 This section documents how the `wallet-sdk-Noah-Huppert` pip package 
 is generated.
 
-First activate the development python virtual environment:
-
-```
-pipenv shell
-```
-
-Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
-
-Publish to pip:
-
-```
-make publish PIP_REPO=pypi
-```
+1. First activate the development python virtual environment:
+   ```
+   pipenv shell
+   ```
+2. Edit the version in [`wallet_sdk/VERSION`](./wallet_sdk/VERSION).
+3. Update [the compatibility matrix in the general `README.md`](../README.md#compatibility-matrix).
+4. Publish to test pip
+   ```
+   make publish
+   ```
+   Inspect package page to ensure everything looks good.
+5. Publish to pip:
+   ```
+   make publish PIP_REPO=pypi
+   ```
