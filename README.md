@@ -21,7 +21,7 @@ See the [`server/`](./server) and [`py-sdk/`](./py-sdk) directories.
 ## Versions Overview
 There are several different versions used in this project:
 
-- **API version**: API behavior [semantic version](https://semver.org/). The API
+- **API version**: API [semantic version](https://semver.org/). The API
   server will run under the path `/api/v<major>`.
 - **Python SDK**: PyPi [semantic version](https://semver.org/) of the Python 
   client package.
@@ -31,15 +31,16 @@ There are several different versions used in this project:
   
 All versions increment separately and for different reasons:
 
-- **API version**: When any update to the behavior of the HTTP API is made. 
-  Follows the [semantic versioning scheme](https://semver.org/). This will cause
-  the server to host under a different `/api/v<major>` path.
+- **API version**: When any update to the source code of the HTTP API is made. 
+  Follows the [semantic versioning scheme](https://semver.org/). Changes to the
+  major version component will cause the server to host under a different
+  `/api/v<major>` path.
 - **Python SDK**: Whenever any update to the Python SDK code is made. Follows
   the [semantic versioning scheme](https://semver.org/).
 - **Client configuration file schema version**: When the structure of client
   configuration files changes. Follows
-  the [semantic versioning scheme](https://semver.org/). Major or minor version
-  changes will require that authorities re-deploy their own applications with
+  the [semantic versioning scheme](https://semver.org/). Major version changes
+  will require that authorities re-deploy their own applications with
   updated configuration files.
 
 Versions do not have to match other version (ex., The API & Python SDK are not 
