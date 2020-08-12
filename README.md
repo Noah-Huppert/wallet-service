@@ -78,3 +78,12 @@ compatibility relationship:
 | Client configuration file schema version | Compatible Python SDK versions |
 |------------------------------------------|--------------------------------|
 | 0.1.0                                    | 0.1.0                          |
+
+## Ensuring Compatibility
+All components of the wallet service platform automatically check each other's
+versions to ensure compatibility.
+
+The HTTP API's health endpoint returns the API version. Client configuration 
+files have a schema version field. The Python SDK knows its own version and 
+knows which versions of the API and client configuration schema with which it
+is compatible.
