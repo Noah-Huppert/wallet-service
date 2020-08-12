@@ -62,14 +62,14 @@ print(my_transactions) # [{'id': '0', 'total': 10},
 
 # Request Credentials
 The wallet service Python SDK is a generic interface to any wallet service. 
-There is no single one wallet service. Instead this repository provides the 
+There is no single wallet service. Instead this repository provides the 
 source code required for someone to host their own wallet service.
 
 To obtain credentials you must contact the administrator of the wallet service 
-you wish to interact. Ask them for an "authority client configuration file". If
-they agree to give you access the administrator should provide you with a 
-JSON file. **This file is secret, it authenticates you with the wallet service,
-!!!and should never be made public!!!**.
+with which you wish to interact. Ask them for an "authority client configuration
+file". If they agree to give you access the administrator should provide you
+with a JSON file. **This file is secret, it authenticates you with the wallet 
+service, !!!and should never be made public!!!**.
 
 Then simply provide the `WalletClient.LoadFromConfig()` function a path to
 this file. 
