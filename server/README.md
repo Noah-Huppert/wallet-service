@@ -29,7 +29,7 @@ First create an authority request JSON file with the following fields:
 
 ```json
 {
-    "api_base_url": "<your API server's host, include scheme, host, and port, no trailing slashes>",
+    "api_base_url": "<your API server's base URL, include scheme, host, port, and any non-version specific path prefixes, no trailing slashes>",
     "name": "<name of authority>",
     "owner": {
 	   "contact": "<owner contact details, any format>",
