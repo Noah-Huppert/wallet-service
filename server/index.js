@@ -28,7 +28,8 @@ const API_PATH_PREFIX = `/api/v${API_VERSION[0]}`
  */
 const config = {
     port: process.env.APP_PORT || 8000,
-    dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`
+    dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
+    disabled: process.env.APP_DISABLED,
 }
 
 /**
@@ -174,7 +175,7 @@ function getParamList(req, paramName) {
  */
 apiRouter.get(`/health`, (req, res) => {
     res.json({
-	   ok: true,
+	   ok: config.disabled || true,
 	   version: `${API_VERSION[0]}.${API_VERSION[1]}.${API_VERSION[2]}`,
     })
 })

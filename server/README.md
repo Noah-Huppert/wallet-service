@@ -5,6 +5,7 @@ Wallet service HTTP API.
 - [Overview](#overview)
 - [Development](#development)
 - [Operations](#operations)
+- [Circuit Breaker](#circuit-breaker)
 
 # Overview
 Nodejs server which provides an HTTP API and stores data in MongoDB.
@@ -46,3 +47,12 @@ node index.js create-authority <authority request file>
 This will save the authority in the database. The corresponding authority client
 configuration JSON will be printed out. This will contain all the information an
 authority client SDK requires to connect and authenticate.
+
+# Circuit Breaker
+The HTTP API's health endpoint returns information about the service's health. 
+
+One field is the `ok` field. If this field is not `true` the HTTP API should be 
+considered non-functional. This can be used to disable the server if needed.
+
+The `APP_DISABLED` environment variable can be set to any value and it will be 
+returned under the `ok` field instead of `true`.
