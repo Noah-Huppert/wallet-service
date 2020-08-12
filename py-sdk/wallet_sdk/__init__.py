@@ -71,6 +71,28 @@ def SemVer(compatible_at: Optional[Tuple[int, int]]=None) -> Callable[[str], Tup
 
     return validate
 
+def dotget(root, path: str, default=None) -> object:
+    """ Access an item in the root field via a dot path.
+    Arguments:
+    - root: Object to access via dot path.
+    - path: Every dot path should be relative to the state property.
+    - default: Default value if path doesn't exist.
+
+    Returns: Value. If path does not exist default is returned.
+    """
+    parts = path.split('.')
+
+    for part in parts:
+        try:
+            if type(root) is list:
+                root = root[int(part)]
+            else:
+                root = root[part]
+        except KeyError:
+            return default
+
+    return root
+
 class WalletAPIError(Exception):
     """ Indicates an error occurred with a wallet service API call.
     """
@@ -129,9 +151,14 @@ class WalletAPIError(Exception):
             try:
                 resp_schema(data)
             except v.MultipleInvalid as e:
+                field_path = ".".join(map(str, e.path))
                 raise WalletAPIError(
                     url=resp.request.url, method=resp.request.method,
-                    error="Response JSON not in the correct format: {}".format(e))
+                    error="Response JSON not in the correct format: "+
+                    "\"{field_path}\" was \"{actual}\" but: {error}".format(
+                        field_path=field_path,
+                        actual=dotget(data, field_path),
+                        error=e.msg))
 
 class WalletConfigError(Exception):
     """ Indicates there was an error while fetching or parsing a wallet service 
