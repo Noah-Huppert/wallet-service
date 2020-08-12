@@ -54,14 +54,14 @@ The API version and Python SDK version have a compatibility relationship:
 
 | API version | Compatible Python SDK versions |
 |-------------|--------------------------------|
-| 0.1.0       | 0.1.0                          |
+| 0.1.0       | 0.1.0, 0.1.1                   |
 
 
 **By Python SDK version**:
 
 | Python SDK version | Compatible API versions |
 |--------------------|-------------------------|
-| 0.1.0              | 0.1.0                   |
+| 0.1.0, 0.1.1       | 0.1.0                   |
 
 
 The Python SDK version and client configuration file schema version have a
@@ -71,13 +71,13 @@ compatibility relationship:
 
 | Python SDK version | Compatible client configuration file schema versions |
 |--------------------|------------------------------------------------------|
-| 0.1.0              | 0.1.0                                                |
+| 0.1.0, 0.1.1       | 0.1.0                                                |
 
 **By client configuration file schema version**:
 
 | Client configuration file schema version | Compatible Python SDK versions |
 |------------------------------------------|--------------------------------|
-| 0.1.0                                    | 0.1.0                          |
+| 0.1.0                                    | 0.1.0, 0.1.1                   |
 
 ## Ensuring Compatibility
 All components of the wallet service platform automatically check each other's
