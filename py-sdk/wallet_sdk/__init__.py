@@ -396,14 +396,3 @@ class WalletClient:
             })
 
         return resp.json()['entry']
-        
-
-if __name__ == '__main__':
-    c = WalletClient(api_url='http://127.0.0.1:8000',
-                     authority_id='5f2cdb324d0e5d2eabeef432',
-                     private_key=b'-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIIfoKksdIYKZU0Np56zCDeH4jcDZOqmsgAu9cM/1RYTPoAoGCCqGSM49\nAwEHoUQDQgAEfpNaJROKO0436jAjBnXGi38/T/ZdYBcs7VL+oQ0sHwM/57bYbPej\nfDqda0rOufFi0ZiOK6vFNC9wSYoTJuckhg==\n-----END EC PRIVATE KEY-----')
-    entry = c.create_entry(user_id='0', amount=10, reason='testing')
-    print("entry={}".format(entry))
-
-    wallets = c.get_wallets()
-    print("wallets={}".format(wallets))
