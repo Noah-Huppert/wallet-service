@@ -85,5 +85,4 @@ versions to ensure compatibility.
 
 The HTTP API's health endpoint returns the API version. Client configuration 
 files have a schema version field. The Python SDK knows its own version and 
-knows which versions of the API and client configuration schema with which it
-is compatible.
+knows which versions of the API and client configuration schema are compatible.
