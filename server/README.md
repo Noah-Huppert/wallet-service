@@ -25,28 +25,27 @@ node index.js
 
 # Operations
 ## Create Authority
-First create an authority request JSON file with the following fields:
+1. First create an authority request JSON file with the following fields:
+	```json
+	{
+		"api_base_url": "<your API server's base URL, include scheme, host, port, and any non-version specific path prefixes, no trailing slashes>",
+		"name": "<name of authority>",
+		"owner": {
+		   "contact": "<owner contact details, any format>",
+		   "nickname": "<friendly name for owner>"
+		}
+	}
+	```
+2. Ensure the `APP_DB_URI` environment variable is correct.
+3. Run the `create-authority` server command with this file as an input.
+   ```
+   node index.js create-authority <authority request file>
+   ```
 
-```json
-{
-    "api_base_url": "<your API server's base URL, include scheme, host, port, and any non-version specific path prefixes, no trailing slashes>",
-    "name": "<name of authority>",
-    "owner": {
-	   "contact": "<owner contact details, any format>",
-	   "nickname": "<friendly name for owner>"
-    }
-}
-```
-
-Next run the `create-authority` server command with this file as an input.
-
-```
-node index.js create-authority <authority request file>
-```
-
-This will save the authority in the database. The corresponding authority client
-configuration JSON will be printed out. This will contain all the information an
-authority client SDK requires to connect and authenticate.
+   This will save the authority in the database. The corresponding authority
+   client configuration JSON will be printed out. This will contain all the
+   information an authority client SDK requires to connect and authenticate.
+4. Send the client configuration file to the authority developer.
 
 ## Release
 1. Bump version
