@@ -9,7 +9,7 @@
 # - cli: Open a MongoDB CLI which is connected to the container.
 
 function die() {
-    echo "redis: $@" >&2
+    echo "mongodb:: $@" >&2
     exit 1
 }
 
@@ -76,7 +76,7 @@ case "$1" in
 		  stopped)
 			 $CONTAINER_CLI rm "$CONTAINER_NAME"
 			 ;;
-		  *) die "Cannot stop and remove redis if not running" ;;
+		  *) die "Cannot stop and remove mongodb: if not running" ;;
 	   esac
 	   ;;
     logs)
