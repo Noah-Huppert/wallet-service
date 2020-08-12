@@ -43,6 +43,7 @@ const API_PATH_PREFIX = `/api/v${API_VERSION[0]}`
  */
 const config = {
     apiPort: process.env.APP_API_PORT || 8000,
+    metricsPort: process.env.APP_METRICS_PORT || 8001,
     metricsPrefix: process.env.APP_METRICS_PREFIX || `wallet_server`,
     dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
     disabled: process.env.APP_DISABLED,
@@ -126,10 +127,11 @@ const app = express()
 const apiRouter = express.Router()
 
 // ... middleware
-app.use((req, res, next) => {
+const reqMeasureMW = (req, res, next) => {
     metricsClient.measureHandler(req, res, next)
-})
-app.use((req, res, next) => {
+}
+
+const reqLogMW = (req, res, next) => {
     log.info(`Request`, {
 	   method: req.method,
 	   path: req.path,
@@ -137,12 +139,15 @@ app.use((req, res, next) => {
     })
 
     next()
-})
+}
+
+app.use(reqMeasureMW)
+app.use(reqLogMW)
 app.use(bodyParser.json())
 app.use(API_PATH_PREFIX, apiRouter)
 
 // ... error handler
-app.use((err, req, res, next) => {
+const reqErrHndlr = (err, req, res, next) => {
     log.error(`Request handler error`, {
 	   method: req.method,
 	   path: req.path,
@@ -160,6 +165,24 @@ app.use((err, req, res, next) => {
     res.status(500).json({
 	   error: `an internal error has occurred`,
     })
+}
+
+app.use(reqErrHndlr)
+
+// Second express app only for publishing metrics internally
+const metricsApp = express()
+
+metricsApp.use(reqMeasureMW)
+metricsApp.use(reqLogMW)
+metricsApp.use(reqErrHndlr)
+
+/**
+ * Prometheus metrics endpoint.
+ * NOTICE: Path not API versioned.
+ */
+metricsApp.get(`/metrics`, (req, res) => {
+    res.set(`Content-Type`, promClient.register.contentType)
+    res.send(promClient.register.metrics())
 })
 
 /**
@@ -271,15 +294,6 @@ apiRouter.get(`/health`, (req, res) => {
 })
 
 /**
- * Prometheus metrics endpoint.
- * NOTICE: Path not API versioned.
- */
-app.get(`/metrics`, (req, res) => {
-    res.set(`Content-Type`, promClient.register.contentType)
-    res.send(promClient.register.metrics())
-})
-
-/**
  * Get wallets, can be filtered.
  */
 apiRouter.get(`/wallets`, auth, async (req, res) => {
@@ -380,6 +394,12 @@ async function main() {
 				log.info(`API server listening`, {
 				    port: config.port,
 				    path_prefix: API_PATH_PREFIX,
+				})
+			 })
+
+			 metricsApp.listen(config.metricsPort, () => {
+				log.info(`Metrics server listening`, {
+				    port: config.metricsPort,
 				})
 			 })
 		  })
