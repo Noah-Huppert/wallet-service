@@ -42,11 +42,37 @@ const API_PATH_PREFIX = `/api/v${API_VERSION[0]}`
  * Server configuration.
  */
 const config = {
+    /**
+	* Port on which HTTP API will be served.
+	*/
     apiPort: process.env.APP_API_PORT || 8000,
+
+    /**
+	* If not empty the HTTP API will serve a failure response on its HTTP API
+	* health endpoint. The failure response will include the contents of 
+	* this property.
+	*/
+    apiNotOkay: process.env.APP_API_NOT_OKAY,
+
+    /**
+	* If not empty the metrics server will be disabled.
+	*/
+    metricsDisabled: process.env.APP_METRICS_DISABLED,
+
+    /**
+	* Port on which Prometheus metrics will be served.
+	*/
     metricsPort: process.env.APP_METRICS_PORT || 8001,
+
+    /**
+	* Prefix for all metrics.
+	*/
     metricsPrefix: process.env.APP_METRICS_PREFIX || `wallet_server:`,
+
+    /**
+	* MongoDB URI with database connection details.
+	*/
     dbURI: process.env.APP_DB_URI || `mongodb://127.0.0.1/dev_wallet_service`,
-    disabled: process.env.APP_DISABLED,
 }
 
 /**
@@ -184,8 +210,8 @@ const reqErrHndlr = (err, req, res, next) => {
 	   error: {
 		  message: err.message,
 		  stack: err.stack,
-		  status_code: err.statusCode,
 	   },
+	   status_code: err.statusCode,
     })
 
     metricsClient.measureInternalError(err, req, res)
@@ -341,7 +367,7 @@ function getParamList(req, paramName) {
  */
 apiRouter.get(`/health`, (req, res) => {
     res.json({
-	   ok: config.disabled || true,
+	   ok: config.apiNotOkay || true,
 	   version: `${API_VERSION[0]}.${API_VERSION[1]}.${API_VERSION[2]}`,
     })
 })
@@ -450,11 +476,19 @@ async function main() {
 				})
 			 })
 
-			 metricsApp.listen(config.metricsPort, () => {
-				log.info(`Metrics server listening`, {
-				    port: config.metricsPort,
+			 if (!config.metricsDisabled) {
+				metricsApp.listen(config.metricsPort, () => {
+				    log.info(`Metrics server listening`, {
+					   port: config.metricsPort,
+				    })
 				})
-			 })
+			 } else {
+				log.info(`Metrics server disabled`, {
+				    config: {
+					   metricsDisabled: config.metricsDisabled,
+				    }
+				})
+			 }
 		  })
 		  break
 	   case `create-authority`:
