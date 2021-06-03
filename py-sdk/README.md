@@ -85,12 +85,17 @@ As an authority you can create an entry to modify a user's wallet and inventory.
 
 Create entries with the `create_entry` method. Specify entry parameters via the arguments:
 
-- `user_id` (`str`): ID of user involved in transaction
-- `amount` (`int`): Value to add (positive) or remove (negative) to / from a user's wallet
-- `reason` (`str`): User friendly description of what this transaction is about
-- `item` (`object`, optional): If provided specifies an item to add to the user's inventory. Sub-keys:
-  - `name` (`str`): User friendly description of the item
-  - `data` (anything): A space where you can put any sort of data to associate with the item
+- `user_id` (`str`)
+- `amount` (`int`)
+- `reason` (`str`)
+- `item` (`object`, optional)
+  - `name` (`str`)
+  - `data` (anything)
+  
+See [Data Types - Entry](#entry) for descriptions of fields.
+  
+**Return Value**  
+The `create_entry` method returns the newly created entry. See [Data Types - Entry](#entry) for type definition.
   
 ## Query Wallets
 **Examples**  
@@ -121,6 +126,9 @@ Queries can narrowed to only retrieve certain users by providing an array of the
 Wallet totals can be limited to entries which only specific authorities created. This will omit entries not created by the specified authorities in the total value calculations. To do so provide an array of authorities IDs via the `authority_ids` argument.
 
 These arguments can both be provided.
+
+**Return Value**  
+The `get_wallets` method returns an array of [Data Type - Wallet Total](#wallet-total) objects.
 
 ## Query Inventory
 **Examples**  
@@ -158,6 +166,9 @@ Results can also be filtered based off of if they are marked as used by providin
 
 These arguments may be provided together.
 
+**Return Value**  
+The `get_inventory` method returns an array of [Data Type - Entry Item](#entry-item) objects.
+
 ## Mark Item As Used
 **Example**  
 ```py
@@ -169,6 +180,9 @@ c.use_item(entry_id='xyz012')
 To mark an item as used call the `use_item` method. 
 
 The ID of the entry in which the item was created is used to specify the item.
+
+**Return Value**  
+The `use_item` method returns the [Data Type - Entry](#entry) which was modified.
   
 ## Ensure wallet service is operational
 **Example**  
@@ -182,6 +196,41 @@ except wallet_sdk.WalletAPIError as e:
 
 **Overview**  
 If you would like to create a circuit breaker in your code and determine if the wallet service is running use the `check_service_health` method.
+
+**Return Value**  
+The `check_service_health` method returns a `bool` indicating if the wallet service server can be used.
+
+## Data Types
+### Entry
+A transaction entry.
+
+- `entry_id` (`str`): Unique ID of entry
+- `authority_id` (`str`): ID of authority which created entry
+- `user_id` (`str`): ID of user for which entry pertains
+- `created_on` (`int`): Unix timestamp of when entry was created
+- `amount` (`int`): Amount added (positive) or removed (negative) from the user's wallet
+- `reason` (`str`): User friendly description of why this transaction occurred
+- `item` (`object`, optional): Item given to user in this transaction
+  - `name` (`str`): User friendly name of item
+  - `used` (`bool`): If item has been used up
+  - `data` (`object`, optional): Any arbitrary data which the creating authority would like to store for this item
+  
+### Wallet Total
+Describes the current value of a wallet.
+
+- `user_id` (`str`): ID of user who owns wallet
+- `total` (`int`): Total amount of money in user's wallet
+
+### Entry Item
+An item a user owns from a transaction.
+
+- `entry_id` (`str`): ID of the entry in which this item was given to the user, this is used as the unique ID for this item
+- `authority_id` (`str`): ID of authority who gave the user the item
+- `user_id` (`str`): ID of the user who owns the item
+- `item` (`object`): Owned item
+  - `name` (`str`): User friendly name of item
+  - `used` (`bool`): If the item has been used up
+  - `data` (`object`, optional): Arbitrary data which the creating authority specified
 
 # Request Credentials
 The wallet service Python SDK is a generic interface to any wallet service. 
