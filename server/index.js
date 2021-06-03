@@ -370,6 +370,16 @@ function getParamList(req, paramName) {
 }
 
 /**
+ * Circuit breaker to disable API version 0.1.0 clients.
+ */
+app.get("/api/v0/health", (req, res) => {
+    res.json({
+	   ok: "server version 0.1.0 has be deprecated",
+	   version: "0.1.0",
+    });
+});
+
+/**
  * External indication that service is operating.
  */
 apiRouter.get("/health", (req, res) => {
