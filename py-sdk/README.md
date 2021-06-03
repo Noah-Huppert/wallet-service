@@ -95,7 +95,7 @@ Create entries with the `create_entry` method. Specify entry parameters via the 
 See [Data Types - Entry](#entry) for descriptions of fields.
   
 **Return Value**  
-The `create_entry` method returns the newly created entry. See [Data Types - Entry](#entry) for type definition.
+The `create_entry` method returns the newly created entry. See [Data Types - Entry](#entry).
   
 ## Query Wallets
 **Examples**  
@@ -198,7 +198,7 @@ except wallet_sdk.WalletAPIError as e:
 If you would like to create a circuit breaker in your code and determine if the wallet service is running use the `check_service_health` method.
 
 **Return Value**  
-The `check_service_health` method returns a `bool` indicating if the wallet service server can be used.
+The `check_service_health` method returns a `bool` indicating if the wallet service server can be used. A `wallet_sdk.WalletAPIError` exception may be raised if the SDK fails to communicate with the wallet service server.
 
 ## Data Types
 ### Entry

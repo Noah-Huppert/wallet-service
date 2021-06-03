@@ -475,7 +475,6 @@ apiRouter.get("/entry/inventory", auth, async (req, res) => {
 	   match.authority_id = { $in: authorityIds };
     }
 
-    console.log(used);
     if (used !== undefined) {
 	   match["item.used"] = used;
     }

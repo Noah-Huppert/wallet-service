@@ -51,39 +51,19 @@ support a new API version).
 ## Version Comparability Matrix
 The API version and Python SDK version have a compatibility relationship:
 
-**By API version**:
-
 | API version | Compatible Python SDK versions |
 |-------------|--------------------------------|
-| 0.1.0       | 0.1.0, 0.1.1, 0.1.2            |
-
-
-**By Python SDK version**:
-
-| Python SDK version  | Compatible API versions |
-|---------------------|-------------------------|
-| 0.1.0, 0.1.1, 0.1.2 | 0.1.0                   |
-
+| 0.1.0       | 0.1.*                          |
+| 1.0.0       | 1.0.0                          |
 
 The Python SDK version and client configuration file schema version have a
 compatibility relationship:
 
-**By Python SDK version**:
-
 | Python SDK version  | Compatible client configuration file schema versions |
 |---------------------|------------------------------------------------------|
-| 0.1.0, 0.1.1, 0.1.2 | 0.1.0                                                |
-
-**By client configuration file schema version**:
-
-| Client configuration file schema version | Compatible Python SDK versions |
-|------------------------------------------|--------------------------------|
-| 0.1.0                                    | 0.1.0, 0.1.1, 0.1.2            |
+| 1.0.0, 0.1.* | 0.1.0                            
 
 ## Ensuring Compatibility
-All components of the wallet service platform automatically check each other's
-versions to ensure compatibility.
+All components of the wallet service platform automatically check each other's versions to ensure compatibility.
 
-The HTTP API's health endpoint returns the API version. Client configuration 
-files have a schema version field. The Python SDK knows its own version and 
-knows which versions of the API and client configuration schema are compatible.
+The HTTP API's health endpoint returns the API version. Client configuration files have a schema version field. The Python SDK knows its own version and knows which versions of the API and client configuration schema are compatible.
