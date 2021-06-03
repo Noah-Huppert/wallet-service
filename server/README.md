@@ -17,10 +17,16 @@ Install dependencies:
 npm install
 ```
 
+Start MongoDB using Docker Compose:
+
+```
+docker-compose up -d
+```
+
 Start the API server:
 
 ```
-node index.js
+npm start
 ```
 
 # Operations

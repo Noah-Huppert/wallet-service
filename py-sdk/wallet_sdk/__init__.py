@@ -4,7 +4,7 @@ Client SDK for the [Wallet Service project](https://github.com/Noah-Huppert/wall
 
 The WalletClient provides a programmatic interface to the wallet service HTTP API.
 """
-from typing import List, Dict, Tuple, Optional, Callable
+from typing import List, Dict, Tuple, Optional, Callable, TypedDict
 import json
 import os
 
@@ -14,11 +14,18 @@ import jwt
 
 # Version of the API with which the client knows how to communicate. List elements
 # in the order: major minor
-COMPATIBLE_API_VERSION = ( 0, 1 )
+COMPATIBLE_API_VERSION = ( 1, 0 )
 
 # Version of client configuration file which the client knows how to parse. List of
 # elements in the order: major minor
 COMPATIBLE_CONFIG_SCHEMA_VERSION = ( 0, 1 )
+
+class EntryItemT(TypedDict):
+    """ Python type hint for entry items.
+    """
+    name: str
+    used: bool
+    data: Optional[object]
 
 def SemVer(compatible_at: Tuple[int, int]=None) -> Callable[[str], Tuple[int, int, int]]:
     """ Validates that a string is formatted as semantic version: major.minor.patch.
@@ -192,12 +199,20 @@ class WalletClient:
         v.Required('private_key'): str,
     })
 
+    ENTRY_ITEM_SCHEMA = v.Schema({
+        v.Required('name'): str,
+        v.Required('used'): bool,
+        v.Optional('data'): object,
+    })
+
     ENTRY_SCHEMA = v.Schema({
+        v.Required('entry_id'): str,
         v.Required('authority_id'): str,
         v.Required('user_id'): str,
         v.Required('created_on'): float,
         v.Required('amount'): int,
         v.Required('reason'): str,
+        v.Optional('item'): ENTRY_ITEM_SCHEMA,
     })
 
     HEALTH_RESP_SCHEMA = v.Schema({
@@ -208,12 +223,25 @@ class WalletClient:
 
     GET_WALLETS_RESP_SCHEMA = v.Schema({
         v.Required('wallets'): [{
-            v.Required('id'): str,
+            v.Required('user_id'): str,
             v.Required('total'): int,
         }]
     })
 
     CREATE_ENTRY_RESP_SCHEMA = v.Schema({
+        v.Required('entry'): ENTRY_SCHEMA,
+    })
+
+    GET_INVENTORY_RESP_SCHEMA = v.Schema({
+        v.Required('inventory'): [{
+            v.Required('entry_id'): str,
+            v.Required('authority_id'): str,
+            v.Required('user_id'): str,
+            v.Required('item'): ENTRY_ITEM_SCHEMA,
+        }]
+    })
+
+    MARK_USED_RESP_SCHEMA = v.Schema({
         v.Required('entry'): ENTRY_SCHEMA,
     })
 
@@ -366,7 +394,7 @@ class WalletClient:
         - WalletAPIError
         """
         resp = self.__do_request__(
-            'GET', '/wallets', resp_schema=WalletClient.GET_WALLETS_RESP_SCHEMA,
+            'GET', '/wallet', resp_schema=WalletClient.GET_WALLETS_RESP_SCHEMA,
             params={
                 'user_ids': ",".join(user_ids),
                 'authority_ids': ",".join(authority_ids),
@@ -374,13 +402,13 @@ class WalletClient:
         
         return resp.json()['wallets']
 
-    def create_entry(self, user_id: str, amount: int,
-                     reason: str) -> Dict[str, object]:
+    def create_entry(self, user_id: str, amount: int, reason: str, item: Optional[EntryItemT]=None) -> Dict[str, object]:
         """ Creates an entry in the wallet service.
         Argments:
         - user_id: ID of user involved in entry.
         - amount: Positive amount to add, or negative amount to remove.
         - reason: Purpose for adding or removing value to / from a user.
+        - item: Item which is being exchanged in this entry, optional.
 
         Returns: Created entry
 
@@ -393,6 +421,53 @@ class WalletClient:
                 'user_id': user_id,
                 'amount': amount,
                 'reason': reason,
+                'item': item,
             })
+
+        return resp.json()['entry']
+
+    def get_inventory(self, entry_ids: List[str]=[], user_ids: List[str]=[], authority_ids: List[str]=[], used: Optional[bool]=False) -> List[Dict[str, object]]:
+        """ Get user inventories. Filterable by user, authority, and item URI.
+        Arguments:
+        - entry_ids: Filter inventories to specified entries, optional.
+        - user_ids: Filter inventories to specified users, optional.
+        - authority_ids: Filter inventories to items from specified authorities, optional.
+        - used: Filter inventories to used or unused items, optional. Defaults to un-used items.
+
+        Returns: Wallets.
+
+        Raises:
+        - WalletAPIError
+        """
+        usedStr = None
+        if used is not None:
+            if used:
+                usedStr = "true"
+            else:
+                usedStr = "false"
+                
+        resp = self.__do_request__(
+            'GET', '/entry/inventory', resp_schema=WalletClient.GET_INVENTORY_RESP_SCHEMA,
+            params={
+                'entry_ids': ",".join(entry_ids),
+                'user_ids': ",".join(user_ids),
+                'authority_ids': ",".join(authority_ids),
+                'used': usedStr,
+            })
+
+        return resp.json()['inventory']
+
+    def use_item(self, entry_id: str) -> Dict[str, object]:
+        """ Mark an item as used.
+        Argments:
+        - entry_id: ID of entry in which item was noted.
+
+        Returns: Entry with modified item.
+
+        Raises:
+        - WalletAPIError
+        """
+        resp = self.__do_request__(
+            'POST', f'/entry/{entry_id}/inventory/use', resp_schema=WalletClient.MARK_USED_RESP_SCHEMA)
 
         return resp.json()['entry']

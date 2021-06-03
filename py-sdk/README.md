@@ -36,7 +36,7 @@ except wallet_sdk.WalletAPIError as e:
 			 
 # Add 10 to user 0's wallet
 entry = c.create_entry(user_id='0', amount=10, reason='testing')
-print(entry) # {'authority_id': '<your authority id>', 'user_id': '0', 'created_on': 1596869670.124, 'amount': 10, 'reason': 'testing'}
+print(entry) # {'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'created_on': 1596869670.124, 'amount': 10, 'reason': 'testing'}
 
 # Get the value of all wallets
 wallets = c.get_wallets()
@@ -58,6 +58,31 @@ my_transactions = c.get_wallets(authority_ids=['<your authority id>'])
 print(my_transactions) # [{'id': '0', 'total': 10},
                        #  {'id': '1', 'total': 150000},
                        #  {'id': '2', 'total': 97000}]
+					   
+# Give users items in an entry
+c.create_entry(used_id='0', amount=-100, reason='bought dress', item={ 'name': 'Amazing Dress' }) # {'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'created_on': 1596869670.124, 'amount': -100, 'reason': 'bought dress', 'item': { 'name': 'Amazing Dress', used: False } }
+
+# Get user's inventory of items
+c.get_inventory() # [ { 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': False } } ]
+
+# Items can be marked as used
+c.use_item(entry_id='xyzxxxxyyzzzz') # { 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': True } }
+
+# By default used items do not show up
+c.get_inventory() # [ ]
+c.get_inventory(used=True) # [ { 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': True } } ]
+
+c.create_entry(user_id='0', amount=-100, reason='another dress', item={ 'name': 'Another Dress' })
+c.get_inventory() # [ { 'entry_id': 'abcdefghabc', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Another Dress', 'used': False } } ]
+c.get_inventory(used=None) # [ { 'entry_id': 'abcdefghabc', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Another Dress', 'used': False } },{ 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': True } } ]
+
+# Inventory items can be filtered by entry_ids, user_ids, and authority_ids
+c.get_inventory(entry_ids=['abcdefghabc'])
+c.get_inventory(used_ids=['0'], authority_ids=['<your authority id>'])
+
+# Items can store arbitrary data in the data field
+# Use this for any of your own application's needs
+c.create_entry(used_id='0', amount=-100, reason='bought a ticket', item={ 'name': 'A ticket', 'data': '{ "expires_on": 12344556, "internal_user_id": "mnjjkl017" }' })
 ```
 
 # Request Credentials
