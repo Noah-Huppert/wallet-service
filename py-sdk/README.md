@@ -34,12 +34,19 @@ c.create_entry(user_id='bobcats9',
                item={ 'name': 'Soda Can' })
 			   
 # Get wallet values
-c.get_wallets()
+all_wallets = c.get_wallets()
+print(all_wallets) # [{ 'user_id': 'foobar123', 'total': 99},
+                   #  { 'user_id': 'bobcats9', 'total': 595 }]
 c.get_wallets(user_ids=['foobar123'],
               authority_id=['xxyyzz'])
 
 # Get items
-c.get_inventory()
+all_inventory = c.get_inventory()
+print(all_inventory) # [{'entry_id': 'xxx',
+                    #   'authority_id': 'xxx',
+                    #   'user_id': 'xxx',
+                    #   'item': { 'name': 'xxx', 'used': False, 'data': 'xxx' } },
+                    #  { ... }]
 c.get_inventory(entry_ids=['1234'],
                 user_ids=['foobar123'],
                 authority_ids=['yyzzii'])
