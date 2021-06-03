@@ -28,7 +28,7 @@ c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json"
 ```
 
 ## Wallet Client
-The wallet service stores arbitrary transaction data. Certain trusted applications, named "authorities", can create entries to add or remove value from a user's wallet,and optionally add an item to a user's inventory.
+The wallet service stores arbitrary transaction data. Certain trusted applications, named "authorities", can create entries to add or remove value from a user's wallet, and optionally add an item to a user's inventory.
 
 A user's wallet value and items they own are aggregated by the wallet service server.
 
@@ -40,15 +40,15 @@ This SDK allows you to act as an authority, and perform these actions.
 # Add 1000 to user 1 's wallet
 c.create_entry(user_id='1',
                amount=1000,
-			   reason='payday')
+               reason='payday')
 
 # Remove 100 from user 1 's wallet and give them an item named Cool Shades
 c.create_entry(user_id='1',
                amount=-100,
-			   reason='bought sunglasses',
-			   item={
-			     'name': 'Cool Shades',
-				 'data': '{ "internal_id": "001122" }'
+               reason='bought sunglasses',
+               item={
+                 'name': 'Cool Shades',
+                 'data': '{ "internal_id": "001122" }'
 			   })
 ```
 
@@ -101,7 +101,7 @@ These arguments can both be provided.
 all_inventory = c.get_inventory()
 print(all_inventory) # [{'entry_id': 'xxx',
                      #   'authority_id': 'xxx',
-					 #   'user_id': 'xxx',
+                     #   'user_id': 'xxx',
 					 #   'item': {
 					 #     'name': 'xxx',
 					 #     'used': False,
