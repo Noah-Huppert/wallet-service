@@ -49,7 +49,7 @@ c.create_entry(user_id='1',
                item={
                  'name': 'Cool Shades',
                  'data': '{ "internal_id": "001122" }'
-			   })
+               })
 ```
 
 **Overview**
@@ -102,14 +102,14 @@ all_inventory = c.get_inventory()
 print(all_inventory) # [{'entry_id': 'xxx',
                      #   'authority_id': 'xxx',
                      #   'user_id': 'xxx',
-					 #   'item': {
-					 #     'name': 'xxx',
-					 #     'used': False,
-					 #     'data': 'xxx',
-					 #   }
-					 #  },
-					 #  { ... }
-					 #  ]
+                     #   'item': {
+                     #     'name': 'xxx',
+                     #     'used': False,
+                     #     'data': 'xxx',
+                     #   }
+                     #  },
+                     #  { ... }
+                     #  ]
 					 
 # Filter inventory by entry IDs
 c.get_inventory(entry_ids=['abc00', 'xyz99'])
