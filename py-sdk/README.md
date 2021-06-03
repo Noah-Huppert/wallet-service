@@ -27,11 +27,11 @@ c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json"
 # Add / remove value and items from user's wallets
 c.create_entry(user_id='foobar123',
                amount=99,
-			   reason='returned a lot of cans')
+               reason='returned a lot of cans')
 c.create_entry(user_id='bobcats9',
                amount=-5,
-			   reason='bought a soda',
-			   item={ 'name': 'Soda Can' })
+               reason='bought a soda',
+               item={ 'name': 'Soda Can' })
 			   
 # Get wallet values
 c.get_wallets()
@@ -42,7 +42,7 @@ c.get_wallets(user_ids=['foobar123'],
 c.get_inventory()
 c.get_inventory(entry_ids=['1234'],
                 user_ids=['foobar123'],
-				authority_ids=['yyzzii'])
+                authority_ids=['yyzzii'])
 				
 # Mark items as used up
 c.use_item(entry_id='998877')
