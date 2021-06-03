@@ -5,6 +5,7 @@ Python interface for a wallet service.
 
 # Table Of Contents
 - [Overview](#overview)
+- [Wallet Client](#wallet-client)
 - [Request Credentials](#request-credentials)
 - [Development](#development)
 - [Operations](#operations)
@@ -14,9 +15,7 @@ Wallet service Python 3 SDK.
 
 First [follow the instructions to request wallet service credentials](#request-credentials).
 
-Next install the [`wallet-sdk-Noah-Huppert`](https://pypi.org/project/wallet-sdk-Noah-Huppert/)
-pip package and import the `wallet_sdk` module. Then use the `WalletClient` 
-class to interact with the wallet service API.
+Next install the [`wallet-sdk-Noah-Huppert`](https://pypi.org/project/wallet-sdk-Noah-Huppert/) pip package and import the `wallet_sdk` module. Then use the `WalletClient` class to interact with the wallet service API.
 
 ```py
 # Import wallet service Python SDK
@@ -26,64 +25,141 @@ import sys
 
 # Initialize the client
 c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json")
-				 
-# Ensure wallet service is operational
+```
+
+## Wallet Client
+The wallet service stores arbitrary transaction data. Certain trusted applications, named "authorities", can create entries to add or remove value from a user's wallet,and optionally add an item to a user's inventory.
+
+A user's wallet value and items they own are aggregated by the wallet service server.
+
+This SDK allows you to act as an authority, and perform these actions.
+
+### Create Entries
+**Examples**  
+```py
+# Add 1000 to user 1 's wallet
+c.create_entry(user_id='1',
+               amount=1000,
+			   reason='payday')
+
+# Remove 100 from user 1 's wallet and give them an item named Cool Shades
+c.create_entry(user_id='1',
+               amount=-100,
+			   reason='bought sunglasses',
+			   item={
+			     'name': 'Cool Shades',
+				 'data': '{ "internal_id": "001122" }'
+			   })
+```
+
+**Overview**
+As an authority you can create an entry to modify a user's wallet and inventory.
+
+Create entries with the `create_entry` method. Specify entry parameters via the arguments:
+
+- `user_id` (`str`): ID of user involved in transaction
+- `amount` (`int`): Value to add (positive) or remove (negative) to / from a user's wallet
+- `reason` (`str`): User friendly description of what this transaction is about
+- `item` (`object`, optional): If provided specifies an item to add to the user's inventory. Sub-keys:
+  - `name` (`str`): User friendly description of the item
+  - `data` (anything): A space where you can put any sort of data to associate with the item
+  
+## Query Wallets
+**Examples**  
+```py
+# Get all wallets
+all_wallets = c.get_wallets()
+print(all_wallets) # [{'user_id': '1', 'total': 900},
+                   #  { ... },
+                   #  {'user_id': '60', 'total': 6000}]
+
+# Find wallets of only users 0 and 2
+wallets_0_and_2 = c.get_wallets(user_ids=['0', '2'])
+print(wallets_0_and_2) # [{'user_id': '0', 'total': 10},
+                       #  {'user_id': '2', 'total': 97000}]
+					   
+# Find wallets but only take into account entries we've made
+my_transactions = c.get_wallets(authority_ids=['<your authority id>'])
+print(my_transactions) # [{'user_id': '1', 'total': 900},
+                       #  {'user_id': '34', 'total': 150000},
+                       #  {'user_id': '41', 'total': 700}]
+```
+
+**Overview**  
+Entries are totaled for each user and can be retrieved using the `get_wallets` method.
+
+Queries can narrowed to only retrieve certain users by providing an array of their IDs via the `user_ids` argument.
+
+Wallet totals can be limited to entries which only specific authorities created. This will omit entries not created by the specified authorities in the total value calculations. To do so provide an array of authorities IDs via the `authority_ids` argument.
+
+These arguments can both be provided.
+
+## Query Inventory
+**Examples**  
+```py
+# Get all user inventory items
+all_inventory = c.get_inventory()
+print(all_inventory) # [{'entry_id': 'xxx',
+                     #   'authority_id': 'xxx',
+					 #   'user_id': 'xxx',
+					 #   'item': {
+					 #     'name': 'xxx',
+					 #     'used': False,
+					 #     'data': 'xxx',
+					 #   }
+					 #  },
+					 #  { ... }
+					 #  ]
+					 
+# Filter inventory by entry IDs
+c.get_inventory(entry_ids=['abc00', 'xyz99'])
+
+# Filter inventory by user IDs
+c.get_inventory(user_ids=['0', '30'])
+
+# Filter inventory by authority IDs
+c.get_inventory(authority_ids=['xxx', 'zzz'])
+
+# Find inventory which has been used
+c.get_inventory(used=True)
+
+# Do not filter by inventory
+c.get_inventory(used=None)
+```
+
+**Overview**  
+User inventory items can be retrieved using the `get_inventory` method.
+
+The results can be filtered by entry ID, user ID, and authority ID via the `entry_ids`, `user_ids`, `authority_ids` arguments respectively.
+
+Results can also be filtered based off of if they are marked as used by providing the `used` argument. By default only unused items are returned. Set `True` to find used items, and to `None` in order to disable filtering based on used status.
+
+These arguments may be provided together.
+
+## Mark Item As Used
+**Example**  
+```py
+# Mark item from entry xyz012 as used
+c.use_item(entry_id='xyz012')
+```
+
+**Overview**  
+To mark an item as used call the `use_item` method. 
+
+The ID of the entry in which the item was created is used to specify the item.
+  
+## Ensure wallet service is operational
+**Example**  
+```py
 try:
     c.check_service_health()
 except wallet_sdk.WalletAPIError as e:
     print("Failed to ensure wallet service is running:", e)
     sys.exit(1)
-			 
-# Add 10 to user 0's wallet
-entry = c.create_entry(user_id='0', amount=10, reason='testing')
-print(entry) # {'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'created_on': 1596869670.124, 'amount': 10, 'reason': 'testing'}
-
-# Get the value of all wallets
-wallets = c.get_wallets()
-print(wallets) # [{'id': '0', 'total': 10}]
-
-# Add a few more entries
-c.create_entry(user_id='1', amount=200000, reason='family wealth')
-c.create_entry(user_id='2', amount=-3000, reason='vegas')
-c.create_entry(user_id='1', amount=-50000, reason='bought a tesla')
-c.create_entry(user_id='2', amount=100000, reason='won the lottery')
-
-# Find wallets of only users 0 and 2
-wallets_0_and_2 = c.get_wallets(user_ids=['0', '2'])
-print(wallets_0_and_2) # [{'id': '0', 'total': 10},
-                       #  {'id': '2', 'total': 97000}]
-
-# Find wallets but only take into account entries we've made
-my_transactions = c.get_wallets(authority_ids=['<your authority id>'])
-print(my_transactions) # [{'id': '0', 'total': 10},
-                       #  {'id': '1', 'total': 150000},
-                       #  {'id': '2', 'total': 97000}]
-					   
-# Give users items in an entry
-c.create_entry(used_id='0', amount=-100, reason='bought dress', item={ 'name': 'Amazing Dress' }) # {'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'created_on': 1596869670.124, 'amount': -100, 'reason': 'bought dress', 'item': { 'name': 'Amazing Dress', used: False } }
-
-# Get user's inventory of items
-c.get_inventory() # [ { 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': False } } ]
-
-# Items can be marked as used
-c.use_item(entry_id='xyzxxxxyyzzzz') # { 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': True } }
-
-# By default used items do not show up
-c.get_inventory() # [ ]
-c.get_inventory(used=True) # [ { 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': True } } ]
-
-c.create_entry(user_id='0', amount=-100, reason='another dress', item={ 'name': 'Another Dress' })
-c.get_inventory() # [ { 'entry_id': 'abcdefghabc', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Another Dress', 'used': False } } ]
-c.get_inventory(used=None) # [ { 'entry_id': 'abcdefghabc', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Another Dress', 'used': False } },{ 'entry_id': 'xyzxxxxyyzzzz', 'authority_id': '<your authority id>', 'user_id': '0', 'item': {'name': 'Amazing Dress', 'used': True } } ]
-
-# Inventory items can be filtered by entry_ids, user_ids, and authority_ids
-c.get_inventory(entry_ids=['abcdefghabc'])
-c.get_inventory(used_ids=['0'], authority_ids=['<your authority id>'])
-
-# Items can store arbitrary data in the data field
-# Use this for any of your own application's needs
-c.create_entry(used_id='0', amount=-100, reason='bought a ticket', item={ 'name': 'A ticket', 'data': '{ "expires_on": 12344556, "internal_user_id": "mnjjkl017" }' })
 ```
+
+**Overview**  
+If you would like to create a circuit breaker in your code and determine if the wallet service is running use the `check_service_health` method.
 
 # Request Credentials
 The wallet service Python SDK is a generic interface to any wallet service. 
