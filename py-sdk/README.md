@@ -25,12 +25,35 @@ import sys
 
 # Initialize the client
 c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json")
+
+# Add / remove value and items from user's wallets
+c.create_entry(user_id='foobar123',
+               amount=99,
+			   reason='returned a lot of cans')
+c.create_entry(user_id='bobcats9',
+               amount=-5,
+			   reason='bought a soda',
+			   item={ 'name': 'Soda Can' })
+			   
+# Get wallet values
+c.get_wallets()
+c.get_wallets(user_ids=['foobar123'],
+              authority_id=['xxyyzz'])
+
+# Get items
+c.get_inventory()
+c.get_inventory(entry_ids=['1234'],
+                user_ids=['foobar123'],
+				authority_ids=['yyzzii'])
+				
+# Mark items as used up
+c.use_item(entry_id='998877')
 ```
 
 ## Wallet Client
 The wallet service stores arbitrary transaction data. Certain trusted applications, named "authorities", can create entries to add or remove value from a user's wallet, and optionally add an item to a user's inventory.
 
-A user's wallet value and items they own are aggregated by the wallet service server.
+A user's wallet value and items they own are aggregated and returned by the wallet service server.
 
 This SDK allows you to act as an authority, and perform these actions.
 
@@ -52,7 +75,7 @@ c.create_entry(user_id='1',
                })
 ```
 
-**Overview**
+**Overview**  
 As an authority you can create an entry to modify a user's wallet and inventory.
 
 Create entries with the `create_entry` method. Specify entry parameters via the arguments:
@@ -102,14 +125,8 @@ all_inventory = c.get_inventory()
 print(all_inventory) # [{'entry_id': 'xxx',
                      #   'authority_id': 'xxx',
                      #   'user_id': 'xxx',
-                     #   'item': {
-                     #     'name': 'xxx',
-                     #     'used': False,
-                     #     'data': 'xxx',
-                     #   }
-                     #  },
-                     #  { ... }
-                     #  ]
+                     #   'item': { 'name': 'xxx', 'used': False, 'data': 'xxx' } },
+                     #  { ... }]
 					 
 # Filter inventory by entry IDs
 c.get_inventory(entry_ids=['abc00', 'xyz99'])
