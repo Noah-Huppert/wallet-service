@@ -21,8 +21,6 @@ Next install the [`wallet-sdk-Noah-Huppert`](https://pypi.org/project/wallet-sdk
 # Import wallet service Python SDK
 import wallet_sdk
 
-import sys
-
 # Initialize the client
 c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json")
 
