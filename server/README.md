@@ -62,6 +62,8 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 
 This will launch a MongoDB container and a server container.
 
+You can include the `docker-compose.debug.yml` file to mount the current working directory in `/tmp`.
+
 ## Release
 1. Bump version
    1. Pick new [semantic version](https://semver.org/). Change major if not 
