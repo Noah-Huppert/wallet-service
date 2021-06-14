@@ -4,3 +4,4 @@ node_modules/
 *.authority-request.json
 *.client-config.json
 container-data/
+secret*

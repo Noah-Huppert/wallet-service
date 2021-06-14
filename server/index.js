@@ -105,11 +105,11 @@ var entrySchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     reason: { type: String, required: true },
     item: {
-	   type: new mongoose.Schema({
+	   type: {
 		  name: { type: String, required: true },
 		  used: { type: Boolean, required: true },
 		  data: { type: Object, required: false },
-	   }, { _id: false }),
+	   },
 	   required: false,
     },
 });
@@ -336,12 +336,33 @@ async function __auth(req, res, next) {
 };
 
 /**
- * Validates that a request's JSON body matches a schema.
+ * Changes all null values into undefined.
+ * @param value Object to change.
+ * @returns Normalized value.
+ */
+function normalizeNull(value) {
+    if (value === null) {
+	   return undefined;
+    } if (typeof(value) === "object") {
+	   let newValue = {};
+	   Object.keys(value).forEach((k) => {
+		  newValue[k] = normalizeNull(value[k]);
+	   });
+
+	   return newValue;
+    }
+
+    return value;
+}
+
+/**
+ * Validates that a request's JSON body matches a schema. Also normalizes null to undefined.
  * @param schema Definition of data requirements.
  * @returns A middleware function which validates the request body.
  */
 function validateBody(schema) {
     return (req, res, next) => {
+	   req.body = normalizeNull(req.body);
 	   let validateRes = schema.validate(req.body);
 
 	   if (validateRes.error) {
@@ -447,13 +468,17 @@ function entryJSON(entry) {
  * Create an entry.
  */
 apiRouter.post("/entry", auth, validateBody(entryReqSchema), async (req, res) => {
+    if (req.body.item !== undefined) {
+	   req.body.item.used = false;
+    }
+    
     let entry = new EntryModel({
 	   authority_id: req.authority.id,
 	   user_id: req.body.user_id,
 	   created_on: new Date(),
 	   amount: req.body.amount,
 	   reason: req.body.reason,
-	   item: { ...req.body.item, used: false },
+	   item: req.body.item,
     });
 
     await entry.save();
