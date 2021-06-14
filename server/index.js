@@ -428,7 +428,7 @@ const entryReqSchema = joi.object({
     item: joi.object({
 	   name: joi.string().required(),
 	   data: joi.object(),
-    }).optional(),
+    }).optional().empty(null),
 });
 
 function entryJSON(entry) {
