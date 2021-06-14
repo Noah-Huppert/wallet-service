@@ -6,6 +6,7 @@ services:
   server:
     build: .
     environment:
+      NODE_ENV: production
       APP_DB_URI: mongodb://mongo/prod_wallet_service
     ports:
       - "8000:8000"
