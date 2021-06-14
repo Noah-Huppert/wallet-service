@@ -53,6 +53,15 @@ npm start
    information an authority client SDK requires to connect and authenticate.
 4. Send the client configuration file to the authority developer.
 
+## Run Server
+To run the server in production it is recommended to use the `docker-compose.prod.yml` and `docker-compose.yml` files with Docker Compose:
+
+```
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+```
+
+This will launch a MongoDB container and a server container.
+
 ## Release
 1. Bump version
    1. Pick new [semantic version](https://semver.org/). Change major if not 

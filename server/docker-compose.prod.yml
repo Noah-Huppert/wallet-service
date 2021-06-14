@@ -1,0 +1,13 @@
+version: "3.7"
+services:
+  mongo:
+    environment:
+      MONGO_INITDB_DATABASE: prod_wallet_service
+  server:
+    build: .
+    environment:
+      APP_DB_URI: mongodb://mongo/prod_wallet_service
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+
