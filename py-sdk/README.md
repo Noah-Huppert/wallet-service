@@ -28,10 +28,13 @@ c = wallet_sdk.WalletClient.LoadFromConfig("./your-authority-client-config.json"
 c.create_entry(user_id='foobar123',
                amount=99,
                reason='returned a lot of cans')
-c.create_entry(user_id='bobcats9',
-               amount=-5,
-               reason='bought a soda',
-               item={ 'name': 'Soda Can' })
+try:
+    c.create_entry(user_id='bobcats9',
+                   amount=-5,
+                   reason='bought a soda',
+                   item={ 'name': 'Soda Can' })
+except wallet_sdk.NotEnoughFundsError as e:
+    print("Sorry user 'bobcats9' cannot afford to buy soda right now")
 			   
 # Get wallet values
 all_wallets = c.get_wallets()
@@ -71,13 +74,17 @@ c.create_entry(user_id='1',
                reason='payday')
 
 # Remove 100 from user 1 's wallet and give them an item named Cool Shades
-c.create_entry(user_id='1',
-               amount=-100,
-               reason='bought sunglasses',
-               item={
-                 'name': 'Cool Shades',
-                 'data': '{ "internal_id": "001122" }'
-               })
+try:
+    c.create_entry(user_id='1',
+                   amount=-100,
+                   reason='bought sunglasses',
+                   item={
+                     'name': 'Cool Shades',
+                     'data': '{ "internal_id": "001122" }'
+                   })
+except wallet_sdk.NotEnoughFundsError as e:
+    print("Sorry, user 1 does not have enough money to buy cool shades right now")
+  
 ```
 
 **Overview**  
@@ -93,6 +100,9 @@ Create entries with the `create_entry` method. Specify entry parameters via the 
   - `data` (anything)
   
 See [Data Types - Entry](#entry) for descriptions of fields.
+
+**Exceptions**  
+- `NotEnoughFundsError`: Raised when the API determines that the user cannot afford to back a transaction
   
 **Return Value**  
 The `create_entry` method returns the newly created entry. See [Data Types - Entry](#entry).
@@ -153,7 +163,7 @@ c.get_inventory(authority_ids=['xxx', 'zzz'])
 # Find inventory which has been used
 c.get_inventory(used=True)
 
-# Do not filter by inventory
+# Do not filter by used
 c.get_inventory(used=None)
 ```
 
