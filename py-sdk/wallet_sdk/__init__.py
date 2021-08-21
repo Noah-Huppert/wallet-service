@@ -14,7 +14,7 @@ import jwt
 
 # Version of the API with which the client knows how to communicate. List elements
 # in the order: major minor
-COMPATIBLE_API_VERSION = ( 1, 0 )
+COMPATIBLE_API_VERSION = ( 1, 1 )
 
 # Version of client configuration file which the client knows how to parse. List of
 # elements in the order: major minor

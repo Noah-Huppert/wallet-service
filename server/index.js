@@ -30,7 +30,7 @@ function die(msg, code) {
 /**
  * API version, for compatibility. Semantic version. Array elements in order: major minor patch.
  */
-const API_VERSION = [ 1, 0, 1 ];
+const API_VERSION = [ 1, 1, 0 ];
 
 /**
  * HTTP API path prefix, computed from the API_VERSION.
