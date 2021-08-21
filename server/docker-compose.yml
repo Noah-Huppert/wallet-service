@@ -5,4 +5,17 @@ services:
     environment:
       MONGO_INITDB_DATABASE: dev_wallet_service
     volumes:
-      - "./container-data/mongo:/data/db"
+      - "mongo_data:/data/db"
+  server:
+    restart: always
+    build: .
+    environment:
+      APP_DB_URI: mongodb://mongo/dev_wallet_service
+    volumes:
+      - "./:/opt/wallet-service/server/"
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+volumes:
+  mongo_data:
+    driver: local

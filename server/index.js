@@ -113,6 +113,24 @@ var entrySchema = new mongoose.Schema({
 	   required: false,
     },
 });
+
+/**
+ * Get the value of user(s) wallet(s).
+ * @param match Object Query to limit entries to.
+ * @returns { user_id: string, total: number }[] Wallet values for each user
+ */
+entrySchema.statics.aggregateWallets = async (match) => {
+    let wallets = await mongoose.model("Entry").aggregate([
+	   { $match: match },
+	   { $group: { _id: "$user_id", total: { $sum: "$amount" } } },
+    ]);
+    return wallets.map((item) => {
+	   return {
+		  user_id: item._id,
+		  total: item.total,
+	   }
+    });
+};
 var EntryModel = mongoose.model("Entry", entrySchema);
 
 // Metrics
@@ -426,16 +444,7 @@ apiRouter.get("/wallet", auth, async (req, res) => {
 	   match.authority_id = { $in: authorityIds };
     }
 
-    let wallets = await EntryModel.aggregate([
-	   { $match: match },
-	   { $group: { _id: "$user_id", total: { $sum: "$amount" } } },
-    ]);
-    let respWallets = wallets.map((item) => {
-	   return {
-		  user_id: item._id,
-		  total: item.total,
-	   }
-    });
+    let respWallets = await EntryModel.aggregateWallets(match);
     
     res.json({
 	   wallets: respWallets
@@ -466,8 +475,23 @@ function entryJSON(entry) {
 
 /**
  * Create an entry.
+ * User must have enough value in their wallet to back the transaction.
+ * Responds with HTTP 402 if the wallet does not have enough value.
  */
 apiRouter.post("/entry", auth, validateBody(entryReqSchema), async (req, res) => {
+    // Check user has enough money if a withdrawal
+    if (req.body.amount < 0) {
+	   let wallet = (await EntryModel.aggregateWallets({ user_id: req.body.user_id }))[0];
+	   if (wallet.total < Math.abs(req.body.amount)) {
+		  // Not enough money
+		  res.status(402).json({
+			 error: `user ${req.body.user_id} does not have enough money to pay ${req.body.amount} as their wallet only has ${wallet.total} in value`,
+		  });
+		  return;
+	   }
+    }
+
+    // Save entry
     if (req.body.item !== undefined) {
 	   req.body.item.used = false;
     }

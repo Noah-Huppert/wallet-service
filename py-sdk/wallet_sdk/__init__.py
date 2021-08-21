@@ -107,15 +107,20 @@ class WalletAPIError(Exception):
     """ Indicates an error occurred with a wallet service API call.
     """
     
-    def __init__(self, url: str, method: str, error: str):
+    def __init__(self, url: str, method: str, status_code: int, error: str):
         """ Initializes.
         Arguments:
         - url: Request URL of API call.
         - method: HTTP method of API call.
+        - status_code: HTTP status code of API response. Is -1 if not response from the server was received.
         - error: Issue which occurred.
         """
-        super().__init__("Failed to call {method} {url}: {error}".format(
-            method=method, url=url, error=error))
+        super().__init__("Failed to call {method} {url}: {status_code} {error}".format(
+            method=method, url=url, status_code=status_code, error=error))
+        self.url = url
+        self.method = method
+        self.status_code = status_code
+        self.error = error
 
     @staticmethod
     def CheckResp(resp: requests.Response, resp_schema: v.Schema=None):
@@ -142,6 +147,7 @@ class WalletAPIError(Exception):
 
             raise WalletAPIError(
                 url=resp.request.url, method=resp.request.method,
+                status_code=resp.status_code,
                 error=("Error response ({status_code} {status_msg}): {error_msg} "+
                 "{raw_body}").format(
                     status_code=resp.status_code, status_msg=resp.reason,
@@ -155,6 +161,7 @@ class WalletAPIError(Exception):
             except ValueError:
                 raise WalletAPIError(
                     url=resp.request.url, method=resp.request.method,
+                    status_code=resp.status_code,
                     error="Response did not have JSON body: actual body={}".format(
                         resp.text))
 
@@ -164,11 +171,21 @@ class WalletAPIError(Exception):
                 field_path = ".".join(map(str, e.path))
                 raise WalletAPIError(
                     url=resp.request.url, method=resp.request.method,
+                    status_code=resp.status_code,
                     error="Response JSON not in the correct format: "+
                     "\"{field_path}\" was \"{actual}\" but: {error}".format(
                         field_path=field_path,
                         actual=dotget(data, field_path),
                         error=e.msg))
+
+class NotEnoughFundsError(Exception):
+    """ Indicates a user did not have enough funds to bac a potential transaction.
+    """
+
+    def __init__(self):
+        """ Initializes.
+        """
+        super().__init__("user does not have funds to back the transaction")
 
 class WalletConfigError(Exception):
     """ Indicates there was an error while fetching or parsing a wallet service 
@@ -333,7 +350,7 @@ class WalletClient:
                 self.check_service_health()
             except WalletAPIError as e:
                  raise WalletAPIError(
-                     self.api_url + path, method, "The wallet service's health "+
+                     self.api_url + path, method, e.status_code, "The wallet service's health "+
                      "had not been checked yet, upon checking the service's "+
                      "health was found to be bad: {}".format(str(e)))
                                       
@@ -358,8 +375,15 @@ class WalletClient:
             WalletAPIError.CheckResp(resp, resp_schema)
 
             return resp
+        except WalletAPIError as e:
+            # Intercept WalletAPIError to find application specific errors
+            if e.status_code == 402:
+                # 402 = payment required
+                raise NotEnoughFundsError()
+            else:
+                raise e
         except requests.RequestException as e:
-            raise WalletAPIError(self.api_url + path, method, str(e))
+            raise WalletAPIError(self.api_url + path, method, -1, str(e))
 
     def check_service_health(self):
         """ Ensures that the wallet service is operating.
@@ -414,6 +438,7 @@ class WalletClient:
 
         Raises:
         - WalletAPIError
+        - NotEnoughFundsError: If the user does not have enough funds to back the new entry.
         """
         resp = self.__do_request__(
             'POST', '/entry', resp_schema=WalletClient.CREATE_ENTRY_RESP_SCHEMA,
